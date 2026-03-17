@@ -1,0 +1,58 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # please only use volume binding in development environment.
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "8000:8000"
+    environment:
+      - FASTAPI_APP_ENVIRONMENT=${FASTAPI_APP_ENVIRONMENT}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - DB_URL=mysql+aiomysql://${MARIADB_USER:-user}:${MARIADB_PASSWORD:-password}@${DB_HOST:-mariadb}:${DB_PORT:-3306}/${MARIADB_DATABASE:-db}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-rootpassword}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-db}
+      MARIADB_USER: ${MARIADB_USER:-user}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-password}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  
+  dbgate:
+    image: dbgate/dbgate
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - dbgate_data:/root/.dbgate
+    environment:
+      - CONNECTIONS=con1
+
+      - LABEL_con1=MariaDB
+      - SERVER_con1=${DB_HOST:-mariadb}
+      - USER_con1=${MARIADB_USER:-user}
+      - PASSWORD_con1=${MARIADB_PASSWORD:-password}
+      - PORT_con1=${DB_PORT:-3306}
+      - ENGINE_con1=mysql@dbgate-plugin-mysql
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
+  dbgate_data:

@@ -1,0 +1,24 @@
+[project]
+name = "dts2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+license = { text = "ECL-2.0" }
+requires-python = ">=3.13"
+dependencies = [
+    "aiomysql>=0.3.2",
+    "aiosqlite>=0.22.1",
+    "cryptography>=46.0.5",
+    "fastapi-webpage",
+    "fastapi[standard]",
+    "greenlet>=3.3.1",
+    "httpx>=0.28.1",
+    "pyjwt>=2.11.0",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-sugar>=1.1.1",
+    "sqlmodel",
+]
+
+[tool.uv.sources]
+fastapi-webpage = { git = "https://github.com/cxphoenix/fastapi-webpage.git" }
