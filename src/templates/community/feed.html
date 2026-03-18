@@ -1,0 +1,36 @@
+{% extends "shared/base.html" %}
+{% block title %}分享牆 — {{ class_name }}{% endblock %}
+
+{% block content %}
+<h2>分享牆 — {{ class_name }}</h2>
+
+{% if feed %}
+{% for item in feed %}
+{% set post = item.post %}
+<article>
+  <header>
+    <strong>{{ item.author_name }}</strong>
+    <small style="float:right">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+  </header>
+  {% if post.content_preview %}
+  <p>{{ post.content_preview }}</p>
+  {% endif %}
+  <footer style="display:flex;gap:.5rem;align-items:center">
+    {% for r in item.reactions %}
+    <span>{{ r.emoji }}</span>
+    {% endfor %}
+    <form method="post" action="/posts/{{ post.id }}/reactions" style="display:inline">
+      <button type="submit" class="outline" style="padding:.2rem .5rem">👍 讚</button>
+    </form>
+    {% if item.is_own or current_user.role == "teacher" %}
+    <form method="post" action="/posts/{{ post.id }}?_method=DELETE" style="display:inline">
+      <button type="submit" class="secondary outline" style="padding:.2rem .5rem">刪除</button>
+    </form>
+    {% endif %}
+  </footer>
+</article>
+{% endfor %}
+{% else %}
+<p>還沒有人分享，快來第一個分享你的作業吧！</p>
+{% endif %}
+{% endblock %}

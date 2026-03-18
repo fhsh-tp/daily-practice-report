@@ -1,0 +1,24 @@
+{% extends "shared/base.html" %}
+{% block title %}我的徽章{% endblock %}
+
+{% block content %}
+<h2>我的徽章</h2>
+
+{% if badges %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">
+  {% for item in badges %}
+  {% set award = item.award %}
+  {% set defn = item.definition %}
+  <article>
+    <header style="font-size:2.5rem;text-align:center">{{ defn.icon if defn else "🏅" }}</header>
+    <h4>{{ defn.name if defn else "未知徽章" }}</h4>
+    <p>{{ defn.description if defn else "" }}</p>
+    {% if award.reason %}<p><small>原因：{{ award.reason }}</small></p>{% endif %}
+    <footer><small>獲得時間：{{ award.awarded_at[:10] }}</small></footer>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p>你還沒有獲得任何徽章，繼續努力！</p>
+{% endif %}
+{% endblock %}

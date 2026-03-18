@@ -1,0 +1,40 @@
+{% extends "shared/base.html" %}
+{% block title %}學生儀表板{% endblock %}
+
+{% block content %}
+<h1>歡迎，{{ current_user.display_name }}</h1>
+
+{% for class_status in classes %}
+<article>
+  <h3>{{ class_status.class_name }}</h3>
+
+  <!-- Check-in Status -->
+  <section>
+    <h4>今日簽到</h4>
+    {% if class_status.already_checked_in %}
+      <p>✅ 今日已簽到</p>
+    {% elif class_status.checkin_open %}
+      <form method="post" action="/classes/{{ class_status.class_id }}/checkin">
+        <button type="submit">立即簽到</button>
+      </form>
+      {% if class_status.closes_at %}
+        <small>簽到截止：{{ class_status.closes_at }}</small>
+      {% endif %}
+    {% else %}
+      <p>⏰ 簽到目前未開放{% if class_status.closes_at %} ({{ class_status.reason }}){% endif %}</p>
+    {% endif %}
+  </section>
+
+  <!-- Today's Task -->
+  <section>
+    <h4>今日任務</h4>
+    {% if class_status.today_template %}
+      <p>{{ class_status.today_template.name }}</p>
+      <a href="/pages/student/classes/{{ class_status.class_id }}/submit" role="button">提交任務</a>
+    {% else %}
+      <p>今日無任務</p>
+    {% endif %}
+  </section>
+</article>
+{% endfor %}
+{% endblock %}

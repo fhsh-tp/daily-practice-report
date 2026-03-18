@@ -1,0 +1,91 @@
+{% extends "shared/base.html" %}
+{% block title %}{% if template %}編輯模板{% else %}新增模板{% endif %}{% endblock %}
+
+{% block content %}
+<h1>{% if template %}編輯任務模板{% else %}新增任務模板{% endif %}</h1>
+
+<form method="post" id="template-form">
+  <label>
+    模板名稱
+    <input type="text" name="name" value="{{ template.name if template else '' }}" required>
+  </label>
+  <label>
+    描述
+    <textarea name="description">{{ template.description if template else '' }}</textarea>
+  </label>
+
+  <h3>欄位定義</h3>
+  <div id="fields-container">
+    {% if template %}
+      {% for field in template.fields %}
+      <fieldset id="field-{{ loop.index0 }}">
+        <legend>欄位 {{ loop.index }}</legend>
+        <label>欄位名稱 <input type="text" name="fields[{{ loop.index0 }}][name]" value="{{ field.name }}" required></label>
+        <label>欄位類型
+          <select name="fields[{{ loop.index0 }}][field_type]">
+            <option value="text" {% if field.field_type == 'text' %}selected{% endif %}>文字</option>
+            <option value="markdown" {% if field.field_type == 'markdown' %}selected{% endif %}>Markdown</option>
+            <option value="number" {% if field.field_type == 'number' %}selected{% endif %}>數字</option>
+            <option value="checkbox" {% if field.field_type == 'checkbox' %}selected{% endif %}>核取方塊</option>
+          </select>
+        </label>
+        <label><input type="checkbox" name="fields[{{ loop.index0 }}][required]" {% if field.required %}checked{% endif %}> 必填</label>
+        <button type="button" onclick="removeField({{ loop.index0 }})">移除</button>
+      </fieldset>
+      {% endfor %}
+    {% else %}
+      <fieldset id="field-0">
+        <legend>欄位 1</legend>
+        <label>欄位名稱 <input type="text" name="fields[0][name]" required></label>
+        <label>欄位類型
+          <select name="fields[0][field_type]">
+            <option value="text">文字</option>
+            <option value="markdown">Markdown</option>
+            <option value="number">數字</option>
+            <option value="checkbox">核取方塊</option>
+          </select>
+        </label>
+        <label><input type="checkbox" name="fields[0][required]"> 必填</label>
+      </fieldset>
+    {% endif %}
+  </div>
+
+  <button type="button" onclick="addField()">+ 新增欄位</button>
+  <hr>
+  <button type="submit">儲存模板</button>
+  <a href="/pages/teacher/classes/{{ class_id }}/templates" role="button" class="secondary">取消</a>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let fieldCount = {{ (template.fields | length) if template else 1 }};
+
+function addField() {
+  const container = document.getElementById('fields-container');
+  const div = document.createElement('fieldset');
+  div.id = `field-${fieldCount}`;
+  div.innerHTML = `
+    <legend>欄位 ${fieldCount + 1}</legend>
+    <label>欄位名稱 <input type="text" name="fields[${fieldCount}][name]" required></label>
+    <label>欄位類型
+      <select name="fields[${fieldCount}][field_type]">
+        <option value="text">文字</option>
+        <option value="markdown">Markdown</option>
+        <option value="number">數字</option>
+        <option value="checkbox">核取方塊</option>
+      </select>
+    </label>
+    <label><input type="checkbox" name="fields[${fieldCount}][required]"> 必填</label>
+    <button type="button" onclick="removeField(${fieldCount})">移除</button>
+  `;
+  container.appendChild(div);
+  fieldCount++;
+}
+
+function removeField(index) {
+  const el = document.getElementById(`field-${index}`);
+  if (el) el.remove();
+}
+</script>
+{% endblock %}

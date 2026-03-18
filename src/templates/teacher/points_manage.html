@@ -1,0 +1,57 @@
+{% extends "shared/base.html" %}
+{% block title %}點數管理 — {{ class_name }}{% endblock %}
+
+{% block content %}
+<h2>點數管理 — {{ class_name }}</h2>
+
+<section>
+  <h3>點數設定</h3>
+  <form method="post" action="/classes/{{ class_id }}/point-config">
+    <fieldset role="group">
+      <label>
+        簽到點數
+        <input type="number" name="checkin_points" value="{{ config.checkin_points }}" min="0" required>
+      </label>
+      <label>
+        提交點數
+        <input type="number" name="submission_points" value="{{ config.submission_points }}" min="0" required>
+      </label>
+      <button type="submit">儲存設定</button>
+    </fieldset>
+  </form>
+</section>
+
+<hr>
+
+<section>
+  <h3>學生點數餘額</h3>
+  {% if members %}
+  <table>
+    <thead>
+      <tr>
+        <th>學生</th>
+        <th>點數餘額</th>
+        <th>追回點數</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+      <tr>
+        <td>{{ m.display_name }}</td>
+        <td><strong>{{ m.balance }}</strong></td>
+        <td>
+          <form method="post" action="/classes/{{ class_id }}/students/{{ m.student_id }}/point-revoke" style="display:flex;gap:.5rem;align-items:center">
+            <input type="number" name="amount" placeholder="點數" min="1" max="{{ m.balance }}" style="width:6rem" required>
+            <input type="text" name="reason" placeholder="原因" required>
+            <button type="submit" class="secondary outline" style="white-space:nowrap">追回</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>此班級目前沒有學生。</p>
+  {% endif %}
+</section>
+{% endblock %}

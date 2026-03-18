@@ -1,0 +1,116 @@
+"""Leaderboard router."""
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.templating import Jinja2Templates
+
+from core.auth.deps import get_current_user, require_teacher
+from core.classes.models import Class, ClassMembership
+from core.users.models import User
+from gamification.points.service import get_balance
+
+router = APIRouter(tags=["leaderboard"])
+
+_templates = Jinja2Templates(
+    directory=str(Path(__file__).parent.parent.parent.parent / "templates")
+)
+
+
+async def _build_class_leaderboard(class_id: str) -> list[dict]:
+    """Return ranked list of students by point balance."""
+    memberships = await ClassMembership.find(
+        ClassMembership.class_id == class_id,
+        ClassMembership.role == "student",
+    ).to_list()
+
+    entries = []
+    for m in memberships:
+        user = await User.get(m.user_id)
+        balance = await get_balance(m.user_id)
+        entries.append({
+            "student_id": m.user_id,
+            "display_name": user.display_name if user else m.user_id,
+            "points": balance,
+        })
+
+    entries.sort(key=lambda e: e["points"], reverse=True)
+
+    # Assign ranks — tied students share the same rank
+    rank = 1
+    for i, entry in enumerate(entries):
+        if i > 0 and entries[i]["points"] < entries[i - 1]["points"]:
+            rank = i + 1
+        entry["rank"] = rank
+
+    return entries
+
+
+@router.get("/classes/{class_id}/leaderboard")
+async def class_leaderboard(
+    class_id: str,
+    user: User = Depends(get_current_user),
+):
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    if user.role == "student" and not cls.leaderboard_enabled:
+        return {"visible": False, "message": "Leaderboard is not enabled for this class"}
+
+    return {"visible": True, "leaderboard": await _build_class_leaderboard(class_id)}
+
+
+@router.get("/leaderboard")
+async def cross_class_leaderboard(user: User = Depends(get_current_user)):
+    """Aggregate leaderboard across public + leaderboard-enabled classes."""
+    classes = await Class.find(
+        Class.visibility == "public",
+        Class.leaderboard_enabled == True,  # noqa: E712
+    ).to_list()
+
+    combined: dict[str, dict] = {}
+    for cls in classes:
+        entries = await _build_class_leaderboard(str(cls.id))
+        for entry in entries:
+            sid = entry["student_id"]
+            if sid not in combined:
+                combined[sid] = {"student_id": sid, "display_name": entry["display_name"], "points": 0}
+            combined[sid]["points"] += entry["points"]
+
+    ranked = sorted(combined.values(), key=lambda e: e["points"], reverse=True)
+    rank = 1
+    for i, entry in enumerate(ranked):
+        if i > 0 and ranked[i]["points"] < ranked[i - 1]["points"]:
+            rank = i + 1
+        entry["rank"] = rank
+
+    return {"leaderboard": ranked}
+
+
+@router.get("/pages/classes/{class_id}/leaderboard")
+async def leaderboard_page(
+    request: Request,
+    class_id: str,
+    user: User = Depends(get_current_user),
+):
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    visible = user.role == "teacher" or cls.leaderboard_enabled
+    entries = await _build_class_leaderboard(class_id) if visible else []
+
+    from gamification.badges.models import BadgeAward
+    # Attach badge count per student
+    for entry in entries:
+        count = await BadgeAward.find(BadgeAward.student_id == entry["student_id"]).count()
+        entry["badge_count"] = count
+
+    return _templates.TemplateResponse("community/leaderboard.html", {
+        "request": request,
+        "current_user": user,
+        "class_id": class_id,
+        "class_name": cls.name,
+        "visible": visible,
+        "leaderboard": entries,
+    })

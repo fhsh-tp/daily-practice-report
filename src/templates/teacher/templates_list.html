@@ -1,0 +1,37 @@
+{% extends "shared/base.html" %}
+{% block title %}任務模板管理{% endblock %}
+
+{% block content %}
+<h1>任務模板管理</h1>
+<p>班級：<strong>{{ class_name }}</strong></p>
+
+<a href="/pages/teacher/classes/{{ class_id }}/templates/new" role="button">+ 新增模板</a>
+
+{% if templates %}
+<table>
+  <thead>
+    <tr>
+      <th>模板名稱</th>
+      <th>欄位數</th>
+      <th>建立時間</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for tmpl in templates %}
+    <tr>
+      <td>{{ tmpl.name }}</td>
+      <td>{{ tmpl.fields | length }}</td>
+      <td>{{ tmpl.created_at.strftime('%Y-%m-%d') }}</td>
+      <td>
+        <a href="/pages/teacher/templates/{{ tmpl.id }}/edit">編輯</a> |
+        <a href="/pages/teacher/templates/{{ tmpl.id }}/assign">指派日期</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>尚無任務模板，請新增。</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "shared/base.html" %}
+{% block title %}提交每日任務{% endblock %}
+
+{% block head_extra %}
+<!-- EasyMDE WYSIWYG Markdown Editor -->
+<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+{% endblock %}
+
+{% block content %}
+<h1>{{ template.name }}</h1>
+{% if template.description %}
+<p>{{ template.description }}</p>
+{% endif %}
+
+<form method="post" action="/classes/{{ class_id }}/submissions" id="submit-form">
+  {% for field in template.fields %}
+  <fieldset>
+    <label>
+      {{ field.name }}{% if field.required %} <span style="color:red">*</span>{% endif %}
+    </label>
+
+    {% if field.field_type == 'text' %}
+    <input type="text" name="{{ field.name }}"
+           {% if field.required %}required{% endif %}>
+
+    {% elif field.field_type == 'markdown' %}
+    <textarea id="md-{{ loop.index0 }}" name="{{ field.name }}"
+              class="md-editor"
+              {% if field.required %}required{% endif %}></textarea>
+
+    {% elif field.field_type == 'number' %}
+    <input type="number" step="any" name="{{ field.name }}"
+           {% if field.required %}required{% endif %}>
+
+    {% elif field.field_type == 'checkbox' %}
+    <input type="checkbox" name="{{ field.name }}" value="true">
+    {% endif %}
+  </fieldset>
+  {% endfor %}
+
+  <button type="submit">提交任務</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+<script>
+// Initialize EasyMDE for all markdown fields
+document.querySelectorAll('.md-editor').forEach(function(el) {
+  new EasyMDE({
+    element: el,
+    spellChecker: false,
+    autosave: { enabled: true, uniqueId: el.id },
+    toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "|", "preview", "side-by-side", "fullscreen"]
+  });
+});
+</script>
+{% endblock %}

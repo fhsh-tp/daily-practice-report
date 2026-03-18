@@ -1,0 +1,33 @@
+{% extends "shared/base.html" %}
+{% block title %}排行榜 — {{ class_name }}{% endblock %}
+
+{% block content %}
+<h2>排行榜 — {{ class_name }}</h2>
+
+{% if not visible %}
+<p>排行榜尚未開放。</p>
+{% elif leaderboard %}
+<table>
+  <thead>
+    <tr>
+      <th>名次</th>
+      <th>學生</th>
+      <th>點數</th>
+      <th>徽章數</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in leaderboard %}
+    <tr>
+      <td>{{ entry.rank }}</td>
+      <td>{{ entry.display_name }}</td>
+      <td><strong>{{ entry.points }}</strong></td>
+      <td>{{ entry.badge_count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>還沒有學生資料。</p>
+{% endif %}
+{% endblock %}

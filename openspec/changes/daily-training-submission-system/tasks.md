@@ -34,71 +34,71 @@
 
 ## 5. 班級管理（class-management）
 
-- [ ] 5.1 建立 Class、ClassMembership Beanie Documents（MongoDB 文件設計）：Class 包含 name、description、visibility、invite_code、owner_id；Membership 包含 class_id、user_id、role
-- [ ] 5.2 實作 Teacher creates a class：POST /classes，自動產生 invite_code，建立者成為 owner
-- [ ] 5.3 實作 Student joins a class via invite code：POST /classes/join，Student joins a class，驗證 code 後新增 membership
-- [ ] 5.4 實作 public class browse 與 join：GET /classes/public 列出公開班級，POST /classes/{id}/join 加入
-- [ ] 5.5 實作 Class visibility control：teacher 可設定 visibility=public/private
-- [ ] 5.6 實作 Teacher manages class members：DELETE /classes/{id}/members/{user_id} 移除學生，PATCH 升為 co-teacher
-- [ ] 5.7 實作 Class invite code regeneration：POST /classes/{id}/invite-code/regenerate，舊 code 立即失效
+- [x] 5.1 建立 Class、ClassMembership Beanie Documents（MongoDB 文件設計）：Class 包含 name、description、visibility、invite_code、owner_id；Membership 包含 class_id、user_id、role
+- [x] 5.2 實作 Teacher creates a class：POST /classes，自動產生 invite_code，建立者成為 owner
+- [x] 5.3 實作 Student joins a class via invite code：POST /classes/join，Student joins a class，驗證 code 後新增 membership
+- [x] 5.4 實作 public class browse 與 join：GET /classes/public 列出公開班級，POST /classes/{id}/join 加入
+- [x] 5.5 實作 Class visibility control：teacher 可設定 visibility=public/private
+- [x] 5.6 實作 Teacher manages class members：DELETE /classes/{id}/members/{user_id} 移除學生，PATCH 升為 co-teacher
+- [x] 5.7 實作 Class invite code regeneration：POST /classes/{id}/invite-code/regenerate，舊 code 立即失效
 
 ## 6. 任務模板（task-templates）
 
-- [ ] 6.1 建立 TaskTemplate、FieldDefinition Beanie Documents（MongoDB 文件設計，嵌入欄位）：FieldDefinition 包含 name、field_type（text/markdown/number/checkbox）、required
-- [ ] 6.2 實作 Teacher creates a task template：POST /classes/{id}/templates，至少一個欄位（Supported field types 驗證）
-- [ ] 6.3 實作 Teacher assigns template to a date：POST /classes/{id}/template-assignments，關聯 template_id 與 date
-- [ ] 6.4 實作 Teacher edits a template：PATCH /templates/{id}，更新模板但已提交資料保留 snapshot
-- [ ] 6.5 實作 Teacher deletes a template：DELETE /templates/{id}，有提交紀錄時拒絕刪除
-- [ ] 6.6 建立學生端 today's template endpoint：GET /classes/{id}/today-template，無模板時回傳適當訊息
-- [ ] 6.7 建立 Jinja2 模板管理頁面（老師）：template list、create、edit
+- [x] 6.1 建立 TaskTemplate、FieldDefinition Beanie Documents（MongoDB 文件設計，嵌入欄位）：FieldDefinition 包含 name、field_type（text/markdown/number/checkbox）、required
+- [x] 6.2 實作 Teacher creates a task template：POST /classes/{id}/templates，至少一個欄位（Supported field types 驗證）
+- [x] 6.3 實作 Teacher assigns template to a date：POST /classes/{id}/template-assignments，關聯 template_id 與 date
+- [x] 6.4 實作 Teacher edits a template：PATCH /templates/{id}，更新模板但已提交資料保留 snapshot
+- [x] 6.5 實作 Teacher deletes a template：DELETE /templates/{id}，有提交紀錄時拒絕刪除
+- [x] 6.6 建立學生端 today's template endpoint：GET /classes/{id}/today-template，無模板時回傳適當訊息
+- [x] 6.7 建立 Jinja2 模板管理頁面（老師）：template list、create、edit
 
 ## 7. 任務提交（task-submissions）
 
-- [ ] 7.1 建立 TaskSubmission Beanie Document（MongoDB 文件設計）：包含 template_snapshot、field_values、student_id、class_id、date、submitted_at
-- [ ] 7.2 實作 Student submits daily task：POST /classes/{id}/submissions，Required fields enforced，Duplicate submission rejected，提交成功後呼叫所有 RewardProviders
-- [ ] 7.3 實作 SubmissionValidator extension point：在提交前依序呼叫所有已注冊的 SubmissionValidator，任一回傳 invalid 則拒絕
-- [ ] 7.4 實作 Student views submission history：GET /students/me/submissions，依日期倒序列出
-- [ ] 7.5 實作 Teacher views class submissions：GET /classes/{id}/submissions?date=YYYY-MM-DD，含未提交學生列表
-- [ ] 7.6 建立 Jinja2 提交頁面：含 EasyMDE WYSIWYG Markdown 編輯器（前端 WYSIWYG Markdown 編輯器，CDN 引入）供 markdown 型別欄位使用
+- [x] 7.1 建立 TaskSubmission Beanie Document（MongoDB 文件設計）：包含 template_snapshot、field_values、student_id、class_id、date、submitted_at
+- [x] 7.2 實作 Student submits daily task：POST /classes/{id}/submissions，Required fields enforced，Duplicate submission rejected，提交成功後呼叫所有 RewardProviders
+- [x] 7.3 實作 SubmissionValidator extension point：在提交前依序呼叫所有已注冊的 SubmissionValidator，任一回傳 invalid 則拒絕
+- [x] 7.4 實作 Student views submission history：GET /students/me/submissions，依日期倒序列出
+- [x] 7.5 實作 Teacher views class submissions：GET /classes/{id}/submissions?date=YYYY-MM-DD，含未提交學生列表
+- [x] 7.6 建立 Jinja2 提交頁面：含 EasyMDE WYSIWYG Markdown 編輯器（前端 WYSIWYG Markdown 編輯器，CDN 引入）供 markdown 型別欄位使用
 
 ## 8. 簽到系統（checkin）
 
-- [ ] 8.1 建立 CheckinConfig、DailyCheckinOverride、CheckinRecord Beanie Documents（MongoDB 文件設計，簽到排程：全域 + 當日覆蓋）
-- [ ] 8.2 實作 Global check-in schedule：POST /classes/{id}/checkin-config，設定 active_weekdays 與 default_window
-- [ ] 8.3 實作 Per-day check-in override：POST /classes/{id}/checkin-overrides，老師設定當日覆蓋，優先於全域設定
-- [ ] 8.4 實作 Student check-in：POST /classes/{id}/checkin，驗證視窗開放、防止 Duplicate check-in，成功後呼叫 RewardProviders
-- [ ] 8.5 實作 Check-in status visibility：GET /classes/{id}/checkin-status，回傳 open/closed 狀態與關閉時間
-- [ ] 8.6 建立 Jinja2 簽到頁面：顯示狀態、按鈕、倒數提示
+- [x] 8.1 建立 CheckinConfig、DailyCheckinOverride、CheckinRecord Beanie Documents（MongoDB 文件設計，簽到排程：全域 + 當日覆蓋）
+- [x] 8.2 實作 Global check-in schedule：POST /classes/{id}/checkin-config，設定 active_weekdays 與 default_window
+- [x] 8.3 實作 Per-day check-in override：POST /classes/{id}/checkin-overrides，老師設定當日覆蓋，優先於全域設定
+- [x] 8.4 實作 Student check-in：POST /classes/{id}/checkin，驗證視窗開放、防止 Duplicate check-in，成功後呼叫 RewardProviders
+- [x] 8.5 實作 Check-in status visibility：GET /classes/{id}/checkin-status，回傳 open/closed 狀態與關閉時間
+- [x] 8.6 建立 Jinja2 簽到頁面：顯示狀態、按鈕、倒數提示
 
 ## 9. 點數系統（points-system）
 
-- [ ] 9.1 建立 PointTransaction Beanie Document（MongoDB 文件設計，使用參照連結 student 與 class）：包含 student_id、amount、reason、source_event、class_id、created_at（Point balance computed from transactions）
-- [ ] 9.2 實作 CheckinRewardProvider 與 SubmissionRewardProvider（RewardProvider extension point 預設實作）：Points awarded on check-in and submission，從 ClassConfig 讀取點數設定
-- [ ] 9.3 實作 Teacher revokes points：POST /classes/{id}/students/{uid}/point-revoke，建立負數 transaction，金額上限為學生現有餘額
-- [ ] 9.4 實作 Student views point history：GET /students/me/points，回傳完整 transaction list
-- [ ] 9.5 實作 balance 計算函式：從 PointTransaction 加總（不存 balance 欄位）
-- [ ] 9.6 建立老師點數管理頁面（Jinja2）：顯示學生餘額列表、追回點數表單
+- [x] 9.1 建立 PointTransaction Beanie Document（MongoDB 文件設計，使用參照連結 student 與 class）：包含 student_id、amount、reason、source_event、class_id、created_at（Point balance computed from transactions）
+- [x] 9.2 實作 CheckinRewardProvider 與 SubmissionRewardProvider（RewardProvider extension point 預設實作）：Points awarded on check-in and submission，從 ClassConfig 讀取點數設定
+- [x] 9.3 實作 Teacher revokes points：POST /classes/{id}/students/{uid}/point-revoke，建立負數 transaction，金額上限為學生現有餘額
+- [x] 9.4 實作 Student views point history：GET /students/me/points，回傳完整 transaction list
+- [x] 9.5 實作 balance 計算函式：從 PointTransaction 加總（不存 balance 欄位）
+- [x] 9.6 建立老師點數管理頁面（Jinja2）：顯示學生餘額列表、追回點數表單
 
 ## 10. 成就徽章（badge-system）
 
-- [ ] 10.1 建立 BadgeDefinition、BadgeAward Beanie Documents（MongoDB 文件設計）
-- [ ] 10.2 實作 BadgeTrigger extension point：定義 Protocol，評估 trigger 後自動授予（Badge awarded automatically on trigger）
-- [ ] 10.3 實作 ConsecutiveCheckinTrigger 與 SubmissionCountTrigger 內建觸發器（BadgeTrigger extension point）
-- [ ] 10.4 在每個 RewardEvent 後非同步評估所有 BadgeTriggers（Badge not awarded if already held）
-- [ ] 10.5 實作 Badge definition by teacher：POST /classes/{id}/badges，關聯 trigger keys
-- [ ] 10.6 實作 Teacher awards badge manually：POST /classes/{id}/badges/{bid}/award，可附 reason
-- [ ] 10.7 實作 Student views earned badges：GET /students/me/badges，含 award date
-- [ ] 10.8 建立學生徽章展示頁面（Jinja2）
+- [x] 10.1 建立 BadgeDefinition、BadgeAward Beanie Documents（MongoDB 文件設計）
+- [x] 10.2 實作 BadgeTrigger extension point：定義 Protocol，評估 trigger 後自動授予（Badge awarded automatically on trigger）
+- [x] 10.3 實作 ConsecutiveCheckinTrigger 與 SubmissionCountTrigger 內建觸發器（BadgeTrigger extension point）
+- [x] 10.4 在每個 RewardEvent 後非同步評估所有 BadgeTriggers（Badge not awarded if already held）
+- [x] 10.5 實作 Badge definition by teacher：POST /classes/{id}/badges，關聯 trigger keys
+- [x] 10.6 實作 Teacher awards badge manually：POST /classes/{id}/badges/{bid}/award，可附 reason
+- [x] 10.7 實作 Student views earned badges：GET /students/me/badges，含 award date
+- [x] 10.8 建立學生徽章展示頁面（Jinja2）
 
 ## 11. 社群分享牆（community-feed）
 
-- [ ] 11.1 建立 FeedPost、Reaction Beanie Documents（MongoDB 文件設計）
-- [ ] 11.2 實作 Student shares a submission to feed：POST /classes/{id}/feed，學生明確選擇分享（Submission not shared by default）
-- [ ] 11.3 實作 Class members view the feed：GET /classes/{id}/feed，非成員回傳 403，依時間倒序（Non-member cannot view feed）
-- [ ] 11.4 實作 Reactions on feed posts：POST /posts/{id}/reactions，每人每文限一個，支援移除（Duplicate reaction rejected）
-- [ ] 11.5 實作 Teacher removes feed posts：DELETE /posts/{id}（teacher），不刪除底層提交
-- [ ] 11.6 實作 Student removes own post：DELETE /posts/{id}（自己的文章）
-- [ ] 11.7 建立社群分享牆 Jinja2 頁面
+- [x] 11.1 建立 FeedPost、Reaction Beanie Documents（MongoDB 文件設計）
+- [x] 11.2 實作 Student shares a submission to feed：POST /classes/{id}/feed，學生明確選擇分享（Submission not shared by default）
+- [x] 11.3 實作 Class members view the feed：GET /classes/{id}/feed，非成員回傳 403，依時間倒序（Non-member cannot view feed）
+- [x] 11.4 實作 Reactions on feed posts：POST /posts/{id}/reactions，每人每文限一個，支援移除（Duplicate reaction rejected）
+- [x] 11.5 實作 Teacher removes feed posts：DELETE /posts/{id}（teacher），不刪除底層提交
+- [x] 11.6 實作 Student removes own post：DELETE /posts/{id}（自己的文章）
+- [x] 11.7 建立社群分享牆 Jinja2 頁面
 
 ## 12. 獎品 Preview（prize-preview）
 
