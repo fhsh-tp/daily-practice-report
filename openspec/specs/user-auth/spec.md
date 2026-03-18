@@ -1,0 +1,690 @@
+# user-auth Specification
+
+## Purpose
+
+TBD - created by archiving change 'daily-training-submission-system'. Update Purpose after archive.
+
+## Requirements
+
+### Requirement: User registration by teacher
+
+Teachers SHALL be able to create student accounts. Each account MUST include a unique username, hashed password, display name, and role (student or teacher).
+
+#### Scenario: Teacher creates student account
+
+- **WHEN** a teacher submits a valid username, password, and display name
+- **THEN** the system SHALL create the account with role=student and return the new user ID
+
+#### Scenario: Duplicate username rejected
+
+- **WHEN** a teacher submits a username that already exists
+- **THEN** the system SHALL return an error and SHALL NOT create a duplicate account
+
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: User login with credentials
+
+The system SHALL authenticate users via username and password. On success, a signed JWT SHALL be issued and stored in an HttpOnly cookie.
+
+#### Scenario: Successful login
+
+- **WHEN** a user submits valid credentials
+- **THEN** the system SHALL set an HttpOnly cookie containing a signed JWT and redirect to the dashboard
+
+#### Scenario: Invalid credentials rejected
+
+- **WHEN** a user submits an incorrect password or unknown username
+- **THEN** the system SHALL return a 401 response and SHALL NOT set a session cookie
+
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: JWT-based session management
+
+The system SHALL validate the JWT on every protected request. Tokens MUST include expiry (exp), user ID, and role claims. Expired tokens MUST be rejected.
+
+#### Scenario: Expired token rejected
+
+- **WHEN** a request arrives with an expired JWT cookie
+- **THEN** the system SHALL redirect the user to the login page
+
+#### Scenario: Valid token accepted
+
+- **WHEN** a request arrives with a valid, non-expired JWT cookie
+- **THEN** the system SHALL allow the request and provide the authenticated user context
+
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: Role-based access control
+
+The system SHALL enforce role-based access. Pages and endpoints designated for teachers MUST reject requests from students, and vice versa.
+
+#### Scenario: Student accesses teacher-only endpoint
+
+- **WHEN** a student sends a request to a teacher-only endpoint
+- **THEN** the system SHALL return a 403 response
+
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: AuthProvider extension point
+
+The system SHALL define an `AuthProvider` Protocol with method `authenticate(credentials) -> User`. The local (username/password) implementation SHALL be registered by default. Additional providers (e.g., Google OAuth) MUST be registerable without modifying core auth code.
+
+#### Scenario: Default local provider authenticates
+
+- **WHEN** the app starts with no additional providers configured
+- **THEN** the LocalAuthProvider SHALL handle all authentication requests
+
+#### Scenario: Additional provider registered
+
+- **WHEN** a new AuthProvider implementation is registered in the ExtensionRegistry at startup
+- **THEN** the auth router SHALL delegate to that provider when the corresponding login method is selected
+
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: Password change
+
+Users SHALL be able to change their own password. The current password MUST be verified before accepting a new one.
+
+#### Scenario: Successful password change
+
+- **WHEN** a user submits their current password and a valid new password
+- **THEN** the system SHALL update the stored hash and invalidate existing sessions
+
+#### Scenario: Wrong current password
+
+- **WHEN** a user submits an incorrect current password
+- **THEN** the system SHALL return an error and SHALL NOT update the password
+
+<!-- @trace
+source: daily-training-submission-system
+updated: 2026-03-18
+code:
+  - src/gamification/__init__.py
+  - src/core/classes/router.py
+  - src/core/classes/service.py
+  - scripts/__init__.py
+  - src/extensions/protocols/reward.py
+  - src/extensions/registry/__init__.py
+  - src/extensions/protocols/__init__.py
+  - src/tasks/checkin/router.py
+  - src/templates/teacher/templates_list.html
+  - LICENSE
+  - uv.lock
+  - src/core/users/__init__.py
+  - src/gamification/points/service.py
+  - src/templates/community/leaderboard.html
+  - src/templates/shared/base.html
+  - src/templates/teacher/template_form.html
+  - src/core/auth/__init__.py
+  - src/tasks/templates/models.py
+  - src/templates/teacher/points_manage.html
+  - src/templates/community/feed.html
+  - src/community/feed/router.py
+  - src/extensions/protocols/validator.py
+  - src/shared/database.py
+  - src/core/classes/__init__.py
+  - src/tasks/checkin/service.py
+  - src/tasks/templates/service.py
+  - src/gamification/badges/__init__.py
+  - src/gamification/points/models.py
+  - src/tasks/checkin/__init__.py
+  - src/community/feed/__init__.py
+  - src/gamification/prizes/__init__.py
+  - src/core/auth/deps.py
+  - src/core/auth/jwt.py
+  - src/extensions/deps.py
+  - docker-compose.yml
+  - src/community/__init__.py
+  - src/core/auth/local_provider.py
+  - src/core/classes/models.py
+  - src/gamification/badges/router.py
+  - src/gamification/leaderboard/router.py
+  - scripts/migrations/__init__.py
+  - src/gamification/points/router.py
+  - src/main.py
+  - src/extensions/registry/core.py
+  - src/shared/__init__.py
+  - src/tasks/checkin/models.py
+  - src/core/users/router.py
+  - pytest.ini
+  - scripts/migrations/20260317_001_initial_indexes.py
+  - src/tasks/submissions/__init__.py
+  - src/community/feed/models.py
+  - src/core/users/models.py
+  - src/gamification/leaderboard/__init__.py
+  - src/templates/student/badges.html
+  - src/tasks/templates/router.py
+  - src/gamification/points/providers.py
+  - src/templates/student/dashboard.html
+  - src/extensions/protocols/badge.py
+  - src/tasks/templates/__init__.py
+  - src/core/auth/password.py
+  - src/extensions/__init__.py
+  - src/gamification/points/__init__.py
+  - pyproject.toml
+  - src/extensions/protocols/auth.py
+  - src/tasks/__init__.py
+  - src/gamification/prizes/models.py
+  - src/tasks/submissions/router.py
+  - src/gamification/badges/service.py
+  - src/tasks/submissions/models.py
+  - src/gamification/prizes/router.py
+  - src/templates/student/submit_task.html
+  - scripts/migrate.py
+  - src/core/__init__.py
+  - src/gamification/badges/models.py
+  - src/core/auth/router.py
+  - src/tasks/submissions/service.py
+  - src/gamification/badges/triggers.py
+tests:
+  - tests/test_checkin.py
+  - tests/test_database.py
+  - tests/test_extensions.py
+  - tests/test_points.py
+  - tests/test_task_templates.py
+  - tests/test_classes.py
+  - tests/test_submissions.py
+  - tests/test_leaderboard.py
+  - tests/test_feed.py
+  - tests/test_prizes.py
+  - tests/test_migration.py
+  - tests/test_module_structure.py
+  - tests/test_auth.py
+  - tests/test_badges.py
+  - scripts/migrations/test_example_migration.py
+-->
