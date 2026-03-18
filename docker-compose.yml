@@ -2,57 +2,47 @@ services:
   app:
     build: .
     restart: unless-stopped
-    # please only use volume binding in development environment.
     volumes:
       - ./src:/app/src
     ports:
       - "8000:8000"
     environment:
-      - FASTAPI_APP_ENVIRONMENT=${FASTAPI_APP_ENVIRONMENT}
+      - FASTAPI_APP_ENVIRONMENT=${FASTAPI_APP_ENVIRONMENT:-dev}
       - SESSION_SECRET=${SESSION_SECRET}
-      - DB_URL=mysql+aiomysql://${MARIADB_USER:-user}:${MARIADB_PASSWORD:-password}@${DB_HOST:-mariadb}:${DB_PORT:-3306}/${MARIADB_DATABASE:-db}
+      - MONGO_URL=mongodb://mongo:27017
+      - MONGO_DB_NAME=${MONGO_DB_NAME:-dts2}
     depends_on:
-      mariadb:
+      mongo:
         condition: service_healthy
 
-  mariadb:
-    image: mariadb:11.4
+  mongo:
+    image: mongo:8.0
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-rootpassword}
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-db}
-      MARIADB_USER: ${MARIADB_USER:-user}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-dts2}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mongo_data:/data/db
     ports:
-      - "3306:3306"
+      - "27017:27017"
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
-      retries: 3
-  
-  dbgate:
-    image: dbgate/dbgate
+      retries: 5
+
+  mongo-express:
+    image: mongo-express:1.0
     restart: unless-stopped
     ports:
-      - 3000:3000
-    volumes:
-      - dbgate_data:/root/.dbgate
+      - "8081:8081"
     environment:
-      - CONNECTIONS=con1
-
-      - LABEL_con1=MariaDB
-      - SERVER_con1=${DB_HOST:-mariadb}
-      - USER_con1=${MARIADB_USER:-user}
-      - PASSWORD_con1=${MARIADB_PASSWORD:-password}
-      - PORT_con1=${DB_PORT:-3306}
-      - ENGINE_con1=mysql@dbgate-plugin-mysql
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_PASSWORD:-pass}
     depends_on:
-      mariadb:
+      mongo:
         condition: service_healthy
 
 volumes:
-  mariadb_data:
-  dbgate_data:
+  mongo_data:

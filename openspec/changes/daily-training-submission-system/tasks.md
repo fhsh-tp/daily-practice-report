@@ -1,36 +1,36 @@
 ## 1. 基礎建設與模組結構
 
-- [ ] 1.1 移除 SQLModel、aiomysql、aiosqlite、greenlet 相依套件，新增 beanie、motor、python-multipart 至 pyproject.toml
-- [ ] 1.2 依照模組結構採 Feature-based 而非 Layered 原則建立目錄：src/core/auth、src/core/users、src/core/classes、src/tasks/templates、src/tasks/submissions、src/tasks/checkin、src/gamification/points、src/gamification/badges、src/gamification/prizes、src/community/feed、src/extensions/protocols、src/extensions/registry
-- [ ] 1.3 重寫 src/shared/database.py 為 Beanie 初始化邏輯（init_beanie），移除 SQLAlchemy engine 與 session 依賴
-- [ ] 1.4 更新 src/main.py lifespan 函式以在 startup 呼叫 Beanie 初始化並完成 Startup registration in lifespan
-- [ ] 1.5 更新 Dockerfile 與 docker-compose.yml 新增 MongoDB service（motor 連接至 mongodb://mongo:27017）
+- [x] 1.1 移除 SQLModel、aiomysql、aiosqlite、greenlet 相依套件，新增 beanie、motor、python-multipart 至 pyproject.toml
+- [x] 1.2 依照模組結構採 Feature-based 而非 Layered 原則建立目錄：src/core/auth、src/core/users、src/core/classes、src/tasks/templates、src/tasks/submissions、src/tasks/checkin、src/gamification/points、src/gamification/badges、src/gamification/prizes、src/community/feed、src/extensions/protocols、src/extensions/registry
+- [x] 1.3 重寫 src/shared/database.py 為 Beanie 初始化邏輯（init_beanie），移除 SQLAlchemy engine 與 session 依賴
+- [x] 1.4 更新 src/main.py lifespan 函式以在 startup 呼叫 Beanie 初始化並完成 Startup registration in lifespan
+- [x] 1.5 更新 Dockerfile 與 docker-compose.yml 新增 MongoDB service（motor 連接至 mongodb://mongo:27017）
 
 ## 2. Migration Script 框架
 
-- [ ] 2.1 建立 scripts/migrate.py CLI 入口點，支援 init、up、down、status 四個子指令（Migration CLI）
-- [ ] 2.2 設計 Migration script structure：每個 migration 為 scripts/migrations/YYYYMMDD_NNN_description.py，包含 async forward() 與 async backward()
-- [ ] 2.3 實作 Migration tracking collection：在 MongoDB 建立 migrations collection，記錄 filename、applied_at、direction
-- [ ] 2.4 實作 Migration idempotency check：up 指令跳過已記錄的 migration，全部完成時印出 "Nothing to migrate"
-- [ ] 2.5 建立第一個 migration 檔案 scripts/migrations/20260317_001_initial_indexes.py（建立常用查詢的 MongoDB indexes）
+- [x] 2.1 建立 scripts/migrate.py CLI 入口點，支援 init、up、down、status 四個子指令（Migration CLI）
+- [x] 2.2 設計 Migration script structure：每個 migration 為 scripts/migrations/YYYYMMDD_NNN_description.py，包含 async forward() 與 async backward()
+- [x] 2.3 實作 Migration tracking collection：在 MongoDB 建立 migrations collection，記錄 filename、applied_at、direction
+- [x] 2.4 實作 Migration idempotency check：up 指令跳過已記錄的 migration，全部完成時印出 "Nothing to migrate"
+- [x] 2.5 建立第一個 migration 檔案 scripts/migrations/20260317_001_initial_indexes.py（建立常用查詢的 MongoDB indexes）
 
 ## 3. Extension Registry 與 Protocol 擴充點
 
-- [ ] 3.1 定義 Protocol definitions for extension points：在 src/extensions/protocols/ 建立 AuthProvider、RewardProvider、BadgeTrigger、SubmissionValidator 四個 Python Protocol（擴充點使用 Python Protocol + Registry 而非繼承）
-- [ ] 3.2 實作 ExtensionRegistry singleton：支援 register(protocol_type, key, impl) 與 get(protocol_type, key)，在 register 時以 isinstance 檢查 Protocol 相容性
-- [ ] 3.3 建立 FastAPI dependency injection via registry：提供 get_auth_provider()、get_reward_providers()、get_badge_triggers()、get_submission_validators() 等 Depends 工廠函式
-- [ ] 3.4 實作 Test registry helper：TestRegistry context manager，測試期間替換 singleton，結束後恢復
+- [x] 3.1 定義 Protocol definitions for extension points：在 src/extensions/protocols/ 建立 AuthProvider、RewardProvider、BadgeTrigger、SubmissionValidator 四個 Python Protocol（擴充點使用 Python Protocol + Registry 而非繼承）
+- [x] 3.2 實作 ExtensionRegistry singleton：支援 register(protocol_type, key, impl) 與 get(protocol_type, key)，在 register 時以 isinstance 檢查 Protocol 相容性
+- [x] 3.3 建立 FastAPI dependency injection via registry：提供 get_auth_provider()、get_reward_providers()、get_badge_triggers()、get_submission_validators() 等 Depends 工廠函式
+- [x] 3.4 實作 Test registry helper：TestRegistry context manager，測試期間替換 singleton，結束後恢復
 
 ## 4. 認證系統（user-auth）
 
-- [ ] 4.1 建立 User Beanie Document（MongoDB 文件設計）：欄位包含 username、hashed_password、display_name、role（student/teacher）、created_at
-- [ ] 4.2 實作 LocalAuthProvider（AuthProvider extension point 的預設實作）：authenticate(credentials) 驗證帳號密碼並回傳 User
-- [ ] 4.3 實作認證：JWT + Cookie Session（JWT-based session management）：使用 PyJWT 發行含 exp、user_id、role 的 token，存入 HttpOnly Cookie
-- [ ] 4.4 建立 auth router：POST /auth/login（User login with credentials）、POST /auth/logout、GET /auth/me
-- [ ] 4.5 建立 auth middleware / dependency：validate_token Depends，expired token 重導向 login
-- [ ] 4.6 實作 Role-based access control：require_teacher()、require_student() Depends，拒絕非授權 role 時回傳 403
-- [ ] 4.7 建立 teacher admin router：POST /admin/users（User registration by teacher），老師建立學生帳號
-- [ ] 4.8 實作 Password change endpoint：POST /auth/change-password，驗證舊密碼後更新並失效現有 session
+- [x] 4.1 建立 User Beanie Document（MongoDB 文件設計）：欄位包含 username、hashed_password、display_name、role（student/teacher）、created_at
+- [x] 4.2 實作 LocalAuthProvider（AuthProvider extension point 的預設實作）：authenticate(credentials) 驗證帳號密碼並回傳 User
+- [x] 4.3 實作認證：JWT + Cookie Session（JWT-based session management）：使用 PyJWT 發行含 exp、user_id、role 的 token，存入 HttpOnly Cookie
+- [x] 4.4 建立 auth router：POST /auth/login（User login with credentials）、POST /auth/logout、GET /auth/me
+- [x] 4.5 建立 auth middleware / dependency：validate_token Depends，expired token 重導向 login
+- [x] 4.6 實作 Role-based access control：require_teacher()、require_student() Depends，拒絕非授權 role 時回傳 403
+- [x] 4.7 建立 teacher admin router：POST /admin/users（User registration by teacher），老師建立學生帳號
+- [x] 4.8 實作 Password change endpoint：POST /auth/change-password，驗證舊密碼後更新並失效現有 session
 
 ## 5. 班級管理（class-management）
 
