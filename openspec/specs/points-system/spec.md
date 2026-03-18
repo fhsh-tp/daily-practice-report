@@ -563,3 +563,45 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Teacher points management HTML page
+
+The system SHALL serve a points management page at `GET /pages/classes/{class_id}/points`. The page SHALL require `MANAGE_TASKS` permission. It SHALL display all students' current point balances and the class point configuration.
+
+#### Scenario: Teacher views class points page
+
+- **WHEN** a user with `MANAGE_TASKS` permission navigates to `GET /pages/classes/{class_id}/points`
+- **THEN** the system SHALL render an HTML page showing all students' point balances and the current checkin/submission point config for that class
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->

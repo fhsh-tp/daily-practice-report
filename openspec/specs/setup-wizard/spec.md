@@ -38,6 +38,34 @@ tests:
   - tests/test_setup_wizard.py
 -->
 
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
 ### Requirement: Setup wizard form submits initial configuration
 
 The system SHALL accept `POST /setup` with at minimum: site name and initial admin username/password. Upon successful submission, the system MUST create a `SystemConfig` document, create the admin `User` document, set Redis `system:configured = "true"`, and redirect to `/`.
@@ -78,6 +106,34 @@ tests:
   - tests/test_setup_wizard.py
 -->
 
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
 ### Requirement: Startup lifespan checks setup state
 
 The application `lifespan` SHALL check setup state on every startup before the application begins serving requests.
@@ -93,7 +149,6 @@ The application `lifespan` SHALL check setup state on every startup before the a
 - **THEN** the application SHALL start normally but MUST only serve `/setup` and static assets until setup completes
 
 ## Requirements
-
 
 <!-- @trace
 source: system-setup-wizard
@@ -119,7 +174,7 @@ tests:
 
 ### Requirement: Setup wizard is shown on first deployment
 
-The system SHALL display a setup wizard HTML page at `GET /setup` when the Redis key `system:configured` is absent and no `SystemConfig` document exists in MongoDB. The page MUST be rendered via Jinja2 and SHALL NOT require authentication.
+The system SHALL display a setup wizard HTML page at `GET /setup` when the Redis key `system:configured` is absent and no `SystemConfig` document exists in MongoDB. The page SHALL be rendered via `WebPage` and SHALL NOT require authentication. If an `error` query parameter is present, the page SHALL display it.
 
 #### Scenario: First boot redirects to setup
 
@@ -132,10 +187,15 @@ The system SHALL display a setup wizard HTML page at `GET /setup` when the Redis
 - **AND** a user navigates to `GET /setup`
 - **THEN** the system SHALL redirect to `/` (HTTP 302)
 
+#### Scenario: Error shown after failed submission
+
+- **WHEN** `GET /setup?error=<message>` is requested
+- **THEN** the page SHALL display the error message
+
 ---
 ### Requirement: Setup wizard form submits initial configuration
 
-The system SHALL accept `POST /setup` with at minimum: site name and initial admin username/password. Upon successful submission, the system MUST create a `SystemConfig` document, create the admin `User` document, set Redis `system:configured = "true"`, and redirect to `/`.
+The system SHALL accept `POST /setup` with at minimum: site name and initial admin username/password. Upon successful submission, the system MUST create a `SystemConfig` document, create the admin `User` document, set Redis `system:configured = "true"`, and redirect to `/`. Upon failure, the system SHALL redirect to `GET /setup?error=<message>` (HTTP 302).
 
 #### Scenario: Successful setup submission
 
@@ -149,6 +209,11 @@ The system SHALL accept `POST /setup` with at minimum: site name and initial adm
 
 - **WHEN** `POST /setup` is called after setup is already complete
 - **THEN** the system SHALL return HTTP 409 Conflict
+
+#### Scenario: Setup submission failure redirects with error
+
+- **WHEN** `POST /setup` fails due to a processing error while not yet configured
+- **THEN** the system SHALL redirect to `GET /setup?error=<message>` (HTTP 302)
 
 ---
 ### Requirement: Startup lifespan checks setup state

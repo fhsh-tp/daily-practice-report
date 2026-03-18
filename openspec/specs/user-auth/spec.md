@@ -303,116 +303,54 @@ tests:
 ---
 ### Requirement: User login with credentials
 
-The system SHALL authenticate users via username and password. On success, a signed JWT SHALL be issued and stored in an HttpOnly cookie.
+The system SHALL authenticate users via username and password. On success, a signed JWT SHALL be issued and stored in an HttpOnly cookie. The API endpoint (`POST /auth/login`) SHALL accept JSON and return JSON. The form endpoint (`POST /pages/login`) SHALL accept form data and redirect.
 
-#### Scenario: Successful login
+#### Scenario: Successful API login
 
-- **WHEN** a user submits valid credentials
-- **THEN** the system SHALL set an HttpOnly cookie containing a signed JWT and redirect to the dashboard
+- **WHEN** a client submits valid credentials to `POST /auth/login` with JSON body
+- **THEN** the system SHALL set an HttpOnly cookie containing a signed JWT and return JSON with permissions
 
-#### Scenario: Invalid credentials rejected
+#### Scenario: Successful form login
 
-- **WHEN** a user submits an incorrect password or unknown username
-- **THEN** the system SHALL return a 401 response and SHALL NOT set a session cookie
+- **WHEN** a user submits valid credentials via `POST /pages/login` with form data
+- **THEN** the system SHALL set an HttpOnly JWT cookie and redirect to `GET /pages/dashboard` (HTTP 302)
+
+#### Scenario: Invalid credentials rejected via API
+
+- **WHEN** a client submits an incorrect password or unknown username to `POST /auth/login`
+- **THEN** the system SHALL return HTTP 401 and SHALL NOT set a session cookie
+
+#### Scenario: Invalid credentials rejected via form
+
+- **WHEN** a user submits incorrect credentials via `POST /pages/login`
+- **THEN** the system SHALL redirect to `GET /pages/login?error=帳號或密碼錯誤` (HTTP 302) and SHALL NOT set a session cookie
 
 
 <!-- @trace
-source: daily-training-submission-system
+source: ui-pages-fastapi-webpage
 updated: 2026-03-18
 code:
-  - src/gamification/__init__.py
-  - src/core/classes/router.py
-  - src/core/classes/service.py
-  - scripts/__init__.py
-  - src/extensions/protocols/reward.py
-  - src/extensions/registry/__init__.py
-  - src/extensions/protocols/__init__.py
-  - src/tasks/checkin/router.py
-  - src/templates/teacher/templates_list.html
-  - LICENSE
-  - uv.lock
-  - src/core/users/__init__.py
-  - src/gamification/points/service.py
-  - src/templates/community/leaderboard.html
-  - src/templates/shared/base.html
-  - src/templates/teacher/template_form.html
-  - src/core/auth/__init__.py
-  - src/tasks/templates/models.py
-  - src/templates/teacher/points_manage.html
-  - src/templates/community/feed.html
-  - src/community/feed/router.py
-  - src/extensions/protocols/validator.py
-  - src/shared/database.py
-  - src/core/classes/__init__.py
-  - src/tasks/checkin/service.py
-  - src/tasks/templates/service.py
-  - src/gamification/badges/__init__.py
-  - src/gamification/points/models.py
-  - src/tasks/checkin/__init__.py
-  - src/community/feed/__init__.py
-  - src/gamification/prizes/__init__.py
-  - src/core/auth/deps.py
-  - src/core/auth/jwt.py
-  - src/extensions/deps.py
-  - docker-compose.yml
-  - src/community/__init__.py
-  - src/core/auth/local_provider.py
-  - src/core/classes/models.py
-  - src/gamification/badges/router.py
-  - src/gamification/leaderboard/router.py
-  - scripts/migrations/__init__.py
   - src/gamification/points/router.py
-  - src/main.py
-  - src/extensions/registry/core.py
-  - src/shared/__init__.py
-  - src/tasks/checkin/models.py
-  - src/core/users/router.py
-  - pytest.ini
-  - scripts/migrations/20260317_001_initial_indexes.py
-  - src/tasks/submissions/__init__.py
-  - src/community/feed/models.py
-  - src/core/users/models.py
-  - src/gamification/leaderboard/__init__.py
-  - src/templates/student/badges.html
-  - src/tasks/templates/router.py
-  - src/gamification/points/providers.py
+  - src/gamification/leaderboard/router.py
   - src/templates/student/dashboard.html
-  - src/extensions/protocols/badge.py
-  - src/tasks/templates/__init__.py
-  - src/core/auth/password.py
-  - src/extensions/__init__.py
-  - src/gamification/points/__init__.py
-  - pyproject.toml
-  - src/extensions/protocols/auth.py
-  - src/tasks/__init__.py
-  - src/gamification/prizes/models.py
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
   - src/tasks/submissions/router.py
-  - src/gamification/badges/service.py
-  - src/tasks/submissions/models.py
-  - src/gamification/prizes/router.py
-  - src/templates/student/submit_task.html
-  - scripts/migrate.py
-  - src/core/__init__.py
-  - src/gamification/badges/models.py
   - src/core/auth/router.py
-  - src/tasks/submissions/service.py
-  - src/gamification/badges/triggers.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
 tests:
-  - tests/test_checkin.py
-  - tests/test_database.py
-  - tests/test_extensions.py
-  - tests/test_points.py
-  - tests/test_task_templates.py
-  - tests/test_classes.py
-  - tests/test_submissions.py
-  - tests/test_leaderboard.py
-  - tests/test_feed.py
-  - tests/test_prizes.py
-  - tests/test_migration.py
-  - tests/test_module_structure.py
-  - tests/test_auth.py
-  - tests/test_badges.py
-  - scripts/migrations/test_example_migration.py
+  - tests/test_pages.py
 -->
 
 ---
@@ -867,4 +805,95 @@ tests:
   - tests/test_auth.py
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: Browser-based form login endpoint
+
+The system SHALL accept `POST /pages/login` with `application/x-www-form-urlencoded` body containing `username` and `password`. On success, it SHALL set the JWT cookie and redirect to `GET /pages/dashboard`. On failure, it SHALL redirect to `GET /pages/login?error=<message>`.
+
+#### Scenario: Successful form login
+
+- **WHEN** a user submits valid credentials via the HTML login form at `POST /pages/login`
+- **THEN** the system SHALL set an HttpOnly JWT cookie and redirect to `GET /pages/dashboard` (HTTP 302)
+
+#### Scenario: Invalid credentials via form
+
+- **WHEN** a user submits invalid credentials via the HTML login form
+- **THEN** the system SHALL redirect to `GET /pages/login?error=帳號或密碼錯誤` (HTTP 302)
+- **AND** the JWT cookie SHALL NOT be set
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
+---
+### Requirement: Browser-based logout redirects to login
+
+The system SHALL accept `POST /auth/logout` and redirect to `GET /pages/login` after clearing the session cookie.
+
+#### Scenario: Successful logout
+
+- **WHEN** a user submits the logout form via `POST /auth/logout`
+- **THEN** the system SHALL clear the JWT cookie and redirect to `GET /pages/login` (HTTP 302)
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
 -->
