@@ -102,15 +102,15 @@
 
 ## 12. 獎品 Preview（prize-preview）
 
-- [ ] 12.1 建立 Prize Beanie Document（MongoDB 文件設計）：包含 title、description、prize_type（online/physical）、image_url、point_cost、visible、class_id
-- [ ] 12.2 實作 Teacher creates prize preview：POST /classes/{id}/prizes，支援 online 與 physical 兩種類型
-- [ ] 12.3 實作 Students view prize showcase：GET /classes/{id}/prizes，只回傳 visible=true 的獎品
-- [ ] 12.4 實作 Teacher manages prize visibility：PATCH /prizes/{id}，設定 visible true/false
-- [ ] 12.5 實作 Teacher edits and deletes prizes：PATCH / DELETE /prizes/{id}
+- [x] 12.1 建立 Prize Beanie Document（MongoDB 文件設計）：包含 title、description、prize_type（online/physical）、image_url、point_cost、visible、class_id
+- [x] 12.2 實作 Teacher creates prize preview：POST /classes/{id}/prizes，支援 online 與 physical 兩種類型
+- [x] 12.3 實作 Students view prize showcase：GET /classes/{id}/prizes，只回傳 visible=true 的獎品
+- [x] 12.4 實作 Teacher manages prize visibility：PATCH /prizes/{id}，設定 visible true/false
+- [x] 12.5 實作 Teacher edits and deletes prizes：PATCH / DELETE /prizes/{id}
 
 ## 13. 排行榜（leaderboard）
 
-- [ ] 13.1 實作 Class leaderboard：GET /classes/{id}/leaderboard，依 point balance 降冪排列，Tied students share rank
-- [ ] 13.2 實作 Teacher controls leaderboard visibility：PATCH /classes/{id}/settings leaderboard_enabled，學生無權限查看時回傳訊息
-- [ ] 13.3 實作 Cross-class leaderboard：GET /leaderboard，聚合所有 public + leaderboard enabled 班級的學生餘額（Cross-class leaderboard 可見度規則）
-- [ ] 13.4 建立排行榜 Jinja2 頁面：顯示 Leaderboard rank display 資訊（rank 編號、display name、points、badge count），同分者共用相同名次
+- [x] 13.1 實作 Class leaderboard：GET /classes/{id}/leaderboard，依 point balance 降冪排列，Tied students share rank
+- [x] 13.2 實作 Teacher controls leaderboard visibility：PATCH /classes/{id}/settings leaderboard_enabled，學生無權限查看時回傳訊息
+- [x] 13.3 實作 Cross-class leaderboard：GET /leaderboard，聚合所有 public + leaderboard enabled 班級的學生餘額（Cross-class leaderboard 可見度規則）
+- [x] 13.4 建立排行榜 Jinja2 頁面：顯示 Leaderboard rank display 資訊（rank 編號、display name、points、badge count），同分者共用相同名次
