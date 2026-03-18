@@ -1,9 +1,41 @@
 {% extends "shared/base.html" %}
-{% block title %}學生儀表板{% endblock %}
+{% block title %}儀表板{% endblock %}
 
 {% block content %}
 <h1>歡迎，{{ current_user.display_name }}</h1>
 
+{# ── 管理入口（有管理權限才顯示） ─────────────────────────────────── #}
+{% if can_manage_class or can_manage_tasks or can_manage_users or is_sys_admin %}
+<article>
+  <h2>管理入口</h2>
+  <ul>
+    {% if can_manage_class %}
+    <li>班級管理 — 可透過 API <code>POST /classes</code> 建立班級，或邀請成員加入</li>
+    {% endif %}
+    {% if can_manage_tasks %}
+    <li>
+      任務模板
+      {% if classes %}
+        —
+        {% for c in classes %}
+          <a href="/pages/teacher/classes/{{ c.class_id }}/templates">{{ c.class_name }}</a>{% if not loop.last %}、{% endif %}
+        {% endfor %}
+      {% else %}
+        — 加入或建立班級後可管理模板
+      {% endif %}
+    </li>
+    {% endif %}
+    {% if can_manage_users %}
+    <li>使用者管理 — 可透過 API <code>GET /users</code> 查看使用者清單</li>
+    {% endif %}
+    {% if is_sys_admin %}
+    <li>系統設定已完成（網站名稱：{{ webpage.site_name }}）</li>
+    {% endif %}
+  </ul>
+</article>
+{% endif %}
+
+{# ── 班級列表 ──────────────────────────────────────────────────────── #}
 {% for class_status in classes %}
 <article>
   <h3>{{ class_status.class_name }}</h3>
@@ -35,6 +67,19 @@
       <p>今日無任務</p>
     {% endif %}
   </section>
+
+  {% if can_manage_tasks %}
+  <section>
+    <h4>教師工具</h4>
+    <a href="/pages/teacher/classes/{{ class_status.class_id }}/templates" role="button" class="secondary">管理任務模板</a>
+    <a href="/pages/classes/{{ class_status.class_id }}/leaderboard" role="button" class="secondary outline">排行榜</a>
+    <a href="/pages/classes/{{ class_status.class_id }}/points" role="button" class="secondary outline">積分管理</a>
+  </section>
+  {% endif %}
 </article>
 {% endfor %}
+
+{% if not classes and not (can_manage_class or can_manage_tasks or can_manage_users or is_sys_admin) %}
+<p>尚未加入任何班級。</p>
+{% endif %}
 {% endblock %}

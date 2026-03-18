@@ -70,3 +70,11 @@ SYS_ADMIN = (
     | Permission.READ_SYSTEM
     | Permission.WRITE_SYSTEM
 )  # 0xC03
+
+# Full site administrator — teacher capabilities + user management + system management
+SITE_ADMIN = (
+    TEACHER
+    | Permission.MANAGE_USERS
+    | Permission.READ_SYSTEM
+    | Permission.WRITE_SYSTEM
+)  # 0xEFF

@@ -81,6 +81,23 @@ app = FastAPI(lifespan=lifespan)
 SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import RedirectResponse as _RedirectResponse
+
+
+class SetupGuardMiddleware(BaseHTTPMiddleware):
+    """Redirect every request to /setup when the system has not been configured yet."""
+
+    async def dispatch(self, request, call_next):
+        if getattr(request.app.state, "system_config", None) is None:
+            if not request.url.path.startswith("/setup"):
+                return _RedirectResponse(url="/setup", status_code=302)
+        return await call_next(request)
+
+
+app.add_middleware(SetupGuardMiddleware)
+
 # --- Routers ---
 from core.system.router import router as system_router
 from core.auth.router import router as auth_router

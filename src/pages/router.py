@@ -99,4 +99,12 @@ async def dashboard_page(
             "today_template": today_template,
         })
 
-    return {"current_user": current_user, "classes": classes}
+    from core.auth.permissions import MANAGE_CLASS, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    return {
+        "current_user": current_user,
+        "classes": classes,
+        "can_manage_class": bool(current_user.permissions & MANAGE_CLASS),
+        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
+        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+    }

@@ -39,11 +39,13 @@ async def post_setup(
         config = SystemConfig(site_name=site_name, admin_email="")
         await config.insert()
 
-        # Create admin user
+        # Create admin user with full site-admin permissions
+        from core.auth.permissions import SITE_ADMIN
         admin = User(
             username=admin_username,
             hashed_password=hash_password(admin_password),
             display_name=admin_username,
+            permissions=int(SITE_ADMIN),
         )
         await admin.insert()
 
