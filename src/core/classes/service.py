@@ -56,7 +56,7 @@ async def join_class_by_code(user: User, invite_code: str) -> ClassMembership:
     membership = ClassMembership(
         class_id=str(cls.id),
         user_id=str(user.id),
-        role=user.role,
+        role="student",
     )
     await membership.insert()
     return membership
@@ -78,7 +78,7 @@ async def join_class_by_id(user: User, class_id: str) -> ClassMembership:
     membership = ClassMembership(
         class_id=class_id,
         user_id=str(user.id),
-        role=user.role,
+        role="student",
     )
     await membership.insert()
     return membership

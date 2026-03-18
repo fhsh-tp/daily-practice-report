@@ -1,6 +1,4 @@
-"""FastAPI dependencies for authentication and role-based access control."""
-from typing import Any, Callable
-
+"""FastAPI dependencies for authentication."""
 from fastapi import Cookie, Depends, HTTPException, status
 
 from core.auth.jwt import decode_access_token
@@ -40,35 +38,3 @@ async def get_current_user(
 
 
 CurrentUser = Depends(get_current_user)
-
-
-def require_teacher() -> Callable:
-    """
-    Return a FastAPI dependency that enforces the teacher role.
-    Returns the current user if they are a teacher.
-    Raises 403 if the user is a student.
-    """
-    async def _dep(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role != "teacher":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Teacher access required",
-            )
-        return current_user
-    return _dep
-
-
-def require_student() -> Callable:
-    """
-    Return a FastAPI dependency that enforces the student role.
-    Returns the current user if they are a student.
-    Raises 403 if the user is a teacher.
-    """
-    async def _dep(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role != "student":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Student access required",
-            )
-        return current_user
-    return _dep

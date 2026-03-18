@@ -6,7 +6,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from community.feed.models import FeedPost, Reaction
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.permissions import MANAGE_CLASS
 from core.classes.models import ClassMembership
 from core.users.models import User
 
@@ -140,7 +141,7 @@ async def delete_post(
         raise HTTPException(status_code=404, detail="Post not found")
 
     # Teacher or own post
-    is_teacher = user.role == "teacher"
+    is_teacher = bool(user.permissions & MANAGE_CLASS)
     is_own = post.student_id == str(user.id)
     if not (is_teacher or is_own):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")

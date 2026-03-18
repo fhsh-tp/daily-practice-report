@@ -5,7 +5,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_CLASS
 from core.users.models import User
 from extensions.deps import get_reward_providers
 from extensions.protocols.reward import RewardEvent, RewardEventType
@@ -36,7 +38,7 @@ class OverrideRequest(BaseModel):
 async def configure_checkin(
     class_id: str,
     body: GlobalConfigRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_CLASS)),
 ):
     from datetime import time as dt_time
     ws = None
@@ -55,7 +57,7 @@ async def configure_checkin(
 async def create_override(
     class_id: str,
     body: OverrideRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_CLASS)),
 ):
     from datetime import date, time as dt_time
     target_date = date.fromisoformat(body.date)

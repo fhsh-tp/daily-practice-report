@@ -1,9 +1,10 @@
-"""Admin router: teacher manages student accounts."""
+"""Admin router: user admin manages accounts."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from core.auth.deps import require_teacher
+from core.auth.guards import require_permission
 from core.auth.password import hash_password
+from core.auth.permissions import MANAGE_USERS, STUDENT
 from core.users.models import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -13,21 +14,16 @@ class CreateUserRequest(BaseModel):
     username: str
     password: str
     display_name: str
-    role: str = "student"
+    permissions: int = int(STUDENT)
+    tags: list[str] = []
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)
 async def create_user(
     body: CreateUserRequest,
-    teacher: User = Depends(require_teacher()),
+    _: User = Depends(require_permission(MANAGE_USERS)),
 ):
-    """Teacher creates a new user account (default role: student)."""
-    if body.role not in ("student", "teacher"):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Role must be 'student' or 'teacher'",
-        )
-
+    """User admin creates a new user account."""
     existing = await User.find_one(User.username == body.username)
     if existing:
         raise HTTPException(
@@ -39,7 +35,8 @@ async def create_user(
         username=body.username,
         hashed_password=hash_password(body.password),
         display_name=body.display_name,
-        role=body.role,
+        permissions=body.permissions,
+        tags=body.tags,
     )
     await user.insert()
-    return {"id": str(user.id), "username": user.username, "role": user.role}
+    return {"id": str(user.id), "username": user.username, "permissions": user.permissions}

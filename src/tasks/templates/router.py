@@ -5,7 +5,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from tasks.templates.service import (
     assign_template_to_date,
@@ -45,7 +47,7 @@ class UpdateTemplateRequest(BaseModel):
 async def create_template_endpoint(
     class_id: str,
     body: CreateTemplateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     try:
         tmpl = await create_template(
@@ -64,7 +66,7 @@ async def create_template_endpoint(
 async def assign_template(
     class_id: str,
     body: AssignTemplateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     assignment = await assign_template_to_date(body.template_id, class_id, body.date)
     return {"template_id": assignment.template_id, "date": str(assignment.date)}
@@ -87,7 +89,7 @@ async def today_template(class_id: str, user: User = Depends(get_current_user)):
 async def update_template_endpoint(
     template_id: str,
     body: UpdateTemplateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if "fields" in updates:
@@ -102,7 +104,7 @@ async def update_template_endpoint(
 @router.delete("/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_template_endpoint(
     template_id: str,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     try:
         await delete_template(template_id)

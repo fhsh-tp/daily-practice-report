@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
 from core.auth.jwt import create_access_token
 from core.auth.password import hash_password, verify_password
 from core.users.models import User
@@ -40,7 +40,7 @@ async def login(body: LoginRequest, response: Response):
             detail="Invalid username or password",
         )
 
-    token = create_access_token(user_id=str(user.id), role=user.role)
+    token = create_access_token(user_id=str(user.id), permissions=user.permissions)
     response.set_cookie(
         key=_COOKIE_NAME,
         value=token,
@@ -48,7 +48,7 @@ async def login(body: LoginRequest, response: Response):
         samesite="lax",
         max_age=_COOKIE_MAX_AGE,
     )
-    return {"message": "Logged in", "role": user.role}
+    return {"message": "Logged in", "permissions": user.permissions}
 
 
 @router.post("/logout")
@@ -63,7 +63,8 @@ async def me(current_user: User = Depends(get_current_user)):
         "id": str(current_user.id),
         "username": current_user.username,
         "display_name": current_user.display_name,
-        "role": current_user.role,
+        "permissions": current_user.permissions,
+        "tags": current_user.tags,
     }
 
 

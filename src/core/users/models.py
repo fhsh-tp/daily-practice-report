@@ -1,19 +1,16 @@
 """User Beanie Document."""
 from datetime import datetime, timezone
-from typing import Literal
 
 from beanie import Document
 from pydantic import Field
-
-
-UserRole = Literal["student", "teacher"]
 
 
 class User(Document):
     username: str
     hashed_password: str
     display_name: str
-    role: UserRole
+    permissions: int = 0
+    tags: list[str] = Field(default_factory=list)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

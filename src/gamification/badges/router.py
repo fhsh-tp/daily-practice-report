@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from gamification.badges.models import BadgeAward, BadgeDefinition
 from gamification.badges.service import award_badge, get_student_badges
@@ -34,7 +36,7 @@ class ManualAwardRequest(BaseModel):
 async def create_badge(
     class_id: str,
     body: BadgeCreateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     badge = BadgeDefinition(
         class_id=class_id,
@@ -53,7 +55,7 @@ async def manual_award_badge(
     class_id: str,
     badge_id: str,
     body: ManualAwardRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     badge = await BadgeDefinition.get(badge_id)
     if badge is None or badge.class_id != class_id:

@@ -4,7 +4,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.permissions import MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
@@ -54,7 +55,7 @@ async def class_leaderboard(
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    if user.role == "student" and not cls.leaderboard_enabled:
+    if not (user.permissions & MANAGE_CLASS) and not cls.leaderboard_enabled:
         return {"visible": False, "message": "Leaderboard is not enabled for this class"}
 
     return {"visible": True, "leaderboard": await _build_class_leaderboard(class_id)}
@@ -97,7 +98,7 @@ async def leaderboard_page(
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    visible = user.role == "teacher" or cls.leaderboard_enabled
+    visible = bool(user.permissions & MANAGE_CLASS) or cls.leaderboard_enabled
     entries = await _build_class_leaderboard(class_id) if visible else []
 
     from gamification.badges.models import BadgeAward

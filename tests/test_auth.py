@@ -18,22 +18,17 @@ async def db():
 
 async def test_user_model_has_required_fields(db):
     from core.users.models import User
+    from core.auth.permissions import STUDENT
     u = User(
         username="alice",
         hashed_password="hashed",
         display_name="Alice",
-        role="student",
+        permissions=int(STUDENT),
     )
     assert u.username == "alice"
-    assert u.role == "student"
+    assert u.permissions == int(STUDENT)
     assert u.created_at is not None
-
-
-async def test_user_role_must_be_valid(db):
-    from core.users.models import User
-    import pydantic
-    with pytest.raises((pydantic.ValidationError, ValueError)):
-        User(username="x", hashed_password="h", display_name="X", role="admin")
+    assert u.tags == []
 
 
 # --- LocalAuthProvider ---
@@ -42,12 +37,13 @@ async def test_local_auth_provider_authenticates_valid_user(db):
     from core.users.models import User
     from core.auth.local_provider import LocalAuthProvider
     from core.auth.password import hash_password
+    from core.auth.permissions import STUDENT
 
     user = User(
         username="bob",
         hashed_password=hash_password("secret123"),
         display_name="Bob",
-        role="student",
+        permissions=int(STUDENT),
     )
     await user.insert()
 
@@ -55,6 +51,8 @@ async def test_local_auth_provider_authenticates_valid_user(db):
     result = await provider.authenticate({"username": "bob", "password": "secret123"})
     assert result is not None
     assert result.username == "bob"
+    assert hasattr(result, "permissions")
+    assert result.permissions == int(STUDENT)
 
 
 async def test_local_auth_provider_rejects_wrong_password(db):
@@ -66,7 +64,6 @@ async def test_local_auth_provider_rejects_wrong_password(db):
         username="carol",
         hashed_password=hash_password("correct"),
         display_name="Carol",
-        role="student",
     )
     await user.insert()
 
@@ -87,24 +84,24 @@ async def test_local_auth_provider_rejects_unknown_user(db):
 
 def test_create_token_contains_claims():
     from core.auth.jwt import create_access_token, decode_access_token
-    token = create_access_token(user_id="user123", role="teacher")
+    from core.auth.permissions import TEACHER
+    token = create_access_token(user_id="user123", permissions=int(TEACHER))
     payload = decode_access_token(token)
     assert payload["user_id"] == "user123"
-    assert payload["role"] == "teacher"
+    assert payload["permissions"] == int(TEACHER)
     assert "exp" in payload
 
 
 def test_expired_token_raises():
-    import time
     from core.auth.jwt import create_access_token, decode_access_token
-    token = create_access_token(user_id="x", role="student", expires_seconds=-1)
+    token = create_access_token(user_id="x", permissions=0, expires_seconds=-1)
     with pytest.raises(Exception):  # jwt.ExpiredSignatureError
         decode_access_token(token)
 
 
 def test_tampered_token_raises():
     from core.auth.jwt import create_access_token, decode_access_token
-    token = create_access_token(user_id="x", role="student")
+    token = create_access_token(user_id="x", permissions=0)
     tampered = token + "tampered"
     with pytest.raises(Exception):
         decode_access_token(tampered)
@@ -131,10 +128,11 @@ def test_password_verify_wrong():
     assert verify_password("wrongpassword", h) is False
 
 
-# --- Role-based access control ---
+# --- Permission-based access control ---
 
-async def test_require_teacher_allows_teacher(db):
-    from core.auth.deps import require_teacher
+async def test_require_permission_allows_user_with_flag(db):
+    from core.auth.guards import require_permission
+    from core.auth.permissions import MANAGE_CLASS
     from core.users.models import User
     from core.auth.password import hash_password
 
@@ -142,18 +140,18 @@ async def test_require_teacher_allows_teacher(db):
         username="teach1",
         hashed_password=hash_password("pw"),
         display_name="Teacher",
-        role="teacher",
+        permissions=int(MANAGE_CLASS),
     )
     await teacher.insert()
 
-    # Simulate the dependency by calling it directly
-    dep = require_teacher()
+    dep = require_permission(MANAGE_CLASS)
     result = await dep(current_user=teacher)
-    assert result.role == "teacher"
+    assert result.permissions & MANAGE_CLASS
 
 
-async def test_require_teacher_rejects_student(db):
-    from core.auth.deps import require_teacher
+async def test_require_permission_rejects_user_without_flag(db):
+    from core.auth.guards import require_permission
+    from core.auth.permissions import MANAGE_CLASS, SUBMIT_TASK
     from core.users.models import User
     from core.auth.password import hash_password
     from fastapi import HTTPException
@@ -162,10 +160,10 @@ async def test_require_teacher_rejects_student(db):
         username="stu1",
         hashed_password=hash_password("pw"),
         display_name="Student",
-        role="student",
+        permissions=int(SUBMIT_TASK),  # no MANAGE_CLASS
     )
 
-    dep = require_teacher()
+    dep = require_permission(MANAGE_CLASS)
     with pytest.raises(HTTPException) as exc_info:
         await dep(current_user=student)
     assert exc_info.value.status_code == 403

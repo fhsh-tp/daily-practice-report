@@ -11,7 +11,7 @@ _DEFAULT_EXPIRES = int(os.getenv("JWT_EXPIRES_SECONDS", str(60 * 60 * 24)))  # 2
 
 def create_access_token(
     user_id: str,
-    role: str,
+    permissions: int,
     expires_seconds: int | None = None,
 ) -> str:
     """
@@ -19,7 +19,7 @@ def create_access_token(
 
     Args:
         user_id: The user's MongoDB ID as a string.
-        role: "student" or "teacher".
+        permissions: The user's permission flags as an integer.
         expires_seconds: Token lifetime in seconds. Defaults to JWT_EXPIRES_SECONDS env var.
 
     Returns:
@@ -31,7 +31,7 @@ def create_access_token(
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": user_id,
-        "role": role,
+        "permissions": permissions,
         "iat": now,
         "exp": now + timedelta(seconds=expires_seconds),
     }

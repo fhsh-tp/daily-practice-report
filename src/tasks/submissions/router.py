@@ -5,7 +5,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from extensions.deps import get_reward_providers, get_submission_validators
 from extensions.protocols.reward import RewardEvent, RewardEventType
@@ -97,7 +99,7 @@ async def my_submissions(user: User = Depends(get_current_user)):
 async def class_submissions(
     class_id: str,
     date_param: date | None = None,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     target = date_param or date.today()
     subs = await get_class_submissions_for_date(class_id, target)

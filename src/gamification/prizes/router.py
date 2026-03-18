@@ -4,7 +4,9 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from gamification.prizes.models import Prize
 
@@ -33,7 +35,7 @@ class PrizePatchRequest(BaseModel):
 async def create_prize(
     class_id: str,
     body: PrizeCreateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     prize = Prize(
         class_id=class_id,
@@ -76,7 +78,7 @@ async def list_prizes(
 async def update_prize(
     prize_id: str,
     body: PrizePatchRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     prize = await Prize.get(prize_id)
     if prize is None:
@@ -92,7 +94,7 @@ async def update_prize(
 @router.delete("/prizes/{prize_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_prize(
     prize_id: str,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     prize = await Prize.get(prize_id)
     if prize is None:

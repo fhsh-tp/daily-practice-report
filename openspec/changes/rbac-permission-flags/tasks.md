@@ -9,15 +9,15 @@
 
 ## 3. User Model 更新
 
-- [ ] 3.1 修改 `src/core/users/models.py`，實作 User model stores permissions as integer and supports tags：移除 `role: UserRole`，新增 `permissions: int = 0`、`tags: list[str] = []`
-- [ ] 3.2 更新 `src/core/users/` 下的 Pydantic schema（`UserCreate`、`UserResponse` 等），新增 `permissions` 與 `tags` 欄位，移除 `role`
+- [x] 3.1 修改 `src/core/users/models.py`，實作 User model stores permissions as integer and supports tags：移除 `role: UserRole`，新增 `permissions: int = 0`、`tags: list[str] = []`
+- [x] 3.2 更新 `src/core/users/` 下的 Pydantic schema（`UserCreate`、`UserResponse` 等），新增 `permissions` 與 `tags` 欄位，移除 `role`
 
 ## 4. 認證流程更新
 
-- [ ] 4.1 修改 `src/core/users/router.py`，更新 User registration by teacher：改用 `require_permission(MANAGE_USERS)` 守衛，接受 `permissions` 欄位替代 `role`（User admin creates student account）
-- [ ] 4.2 修改 `src/core/auth/local_provider.py`，`authenticate()` 回傳的 User 含 `permissions` int
-- [ ] 4.3 修改 `src/core/auth/deps.py`（`get_current_user`），確保解出的 User payload 含 `permissions`
-- [ ] 4.4 更新 `src/core/classes/router.py`、`src/tasks/templates/router.py` 等現有 router，以 `require_permission` 替換原有 `role == "teacher"` 判斷
+- [x] 4.1 修改 `src/core/users/router.py`，更新 User registration by teacher：改用 `require_permission(MANAGE_USERS)` 守衛，接受 `permissions` 欄位替代 `role`（User admin creates student account）
+- [x] 4.2 修改 `src/core/auth/local_provider.py`，`authenticate()` 回傳的 User 含 `permissions` int
+- [x] 4.3 修改 `src/core/auth/deps.py`（`get_current_user`），確保解出的 User payload 含 `permissions`
+- [x] 4.4 更新 `src/core/classes/router.py`、`src/tasks/templates/router.py` 等現有 router，以 `require_permission` 替換原有 `role == "teacher"` 判斷
 
 ## 5. Migration（Migration：User.role → User.permissions）
 

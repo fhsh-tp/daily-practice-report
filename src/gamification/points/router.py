@@ -4,7 +4,9 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.classes.models import ClassMembership
 from core.users.models import User
 from gamification.points.service import (
@@ -52,7 +54,7 @@ async def revoke_student_points(
     class_id: str,
     student_id: str,
     body: RevokeRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     if body.amount <= 0:
         raise HTTPException(
@@ -73,7 +75,7 @@ async def revoke_student_points(
 async def update_point_config(
     class_id: str,
     body: ConfigRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     from gamification.points.models import ClassPointConfig
     existing = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
@@ -95,7 +97,7 @@ async def update_point_config(
 async def points_manage_page(
     request: Request,
     class_id: str,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     from core.classes.models import Class
     from gamification.points.models import ClassPointConfig
