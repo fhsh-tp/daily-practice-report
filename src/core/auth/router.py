@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from core.auth.deps import get_current_user
@@ -10,6 +11,7 @@ from core.auth.password import hash_password, verify_password
 from core.users.models import User
 from extensions.registry import registry
 from extensions.protocols import AuthProvider
+from shared.webpage import webpage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -52,9 +54,11 @@ async def login(body: LoginRequest, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie(key=_COOKIE_NAME)
-    return {"message": "Logged out"}
+@webpage.redirect(status_code=302)
+async def logout(request: Request):
+    redirect = RedirectResponse(url=str(request.url_for("login_page")), status_code=302)
+    redirect.delete_cookie(key=_COOKIE_NAME)
+    return redirect
 
 
 @router.get("/me")

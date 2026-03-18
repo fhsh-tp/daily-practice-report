@@ -1,14 +1,13 @@
 import os
 import secrets
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.templating import Jinja2Templates
 
 from shared import SessionMiddleware, init_db
 from shared.database import get_motor_client
 from shared.redis import get_redis_client
+from shared.webpage import webpage
 
 
 def _collect_document_models():
@@ -66,6 +65,11 @@ async def lifespan(app: FastAPI):
 
     _register_extensions()
 
+    # Inject site_name into WebPage global context
+    config = getattr(app.state, "system_config", None)
+    site_name = config.site_name if config is not None else "每日任務系統"
+    webpage.webpage_context_update({"site_name": site_name})
+
     yield
 
     await app.state.redis.aclose()
@@ -76,10 +80,6 @@ app = FastAPI(lifespan=lifespan)
 
 SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
-
-# Jinja2 templates
-_templates_dir = Path(__file__).parent / "templates"
-templates = Jinja2Templates(directory=str(_templates_dir))
 
 # --- Routers ---
 from core.system.router import router as system_router
@@ -109,6 +109,17 @@ app.include_router(prizes_router)
 app.include_router(leaderboard_router)
 
 
+from fastapi import Cookie, Request
+from fastapi.responses import RedirectResponse
+
+
 @app.get("/")
-async def root():
-    return {"message": "root page"}
+async def root(request: Request, access_token: str | None = Cookie(default=None)):
+    if access_token:
+        from core.auth.jwt import decode_access_token
+        try:
+            decode_access_token(access_token)
+            return RedirectResponse(url=request.url_for("dashboard_page"), status_code=302)
+        except Exception:
+            pass
+    return RedirectResponse(url=request.url_for("login_page"), status_code=302)

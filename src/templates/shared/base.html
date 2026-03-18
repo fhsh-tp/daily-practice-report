@@ -3,19 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}每日任務系統{% endblock %}</title>
+  <title>{% block title %}{{ webpage.site_name }}{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   {% block head_extra %}{% endblock %}
 </head>
 <body>
   <nav class="container-fluid">
     <ul>
-      <li><strong>每日任務系統</strong></li>
+      <li><strong>{{ webpage.site_name }}</strong></li>
     </ul>
     <ul>
       {% if current_user %}
-        <li>{{ current_user.display_name }} ({{ current_user.role }})</li>
-        <li><a href="/auth/logout" role="button" class="secondary outline">登出</a></li>
+        <li>{{ current_user.display_name }}</li>
+        <li>
+          <form method="post" action="/auth/logout" style="margin:0">
+            <button type="submit" class="secondary outline">登出</button>
+          </form>
+        </li>
       {% else %}
         <li><a href="/pages/login">登入</a></li>
       {% endif %}
