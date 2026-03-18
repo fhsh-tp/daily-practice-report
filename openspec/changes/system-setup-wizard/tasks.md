@@ -31,5 +31,5 @@
 
 ## 7. 整合與測試
 
-- [ ] 7.1 在 `main.py` 的 `include_router` 加入 system router；將 setup router 排在所有其他 router 之前
-- [ ] 7.2 撰寫 `tests/system/` 下的整合測試，覆蓋：首次啟動顯示 setup、設定完成後 `/setup` 重導向、重複提交 409、Redis flag 遺失自動復原（System config is updatable by system administrator — 待 RBAC change 完成後補上）
+- [x] 7.1 在 `main.py` 的 `include_router` 加入 system router；將 setup router 排在所有其他 router 之前
+- [x] 7.2 撰寫 `tests/system/` 下的整合測試，覆蓋：首次啟動顯示 setup、設定完成後 `/setup` 重導向、重複提交 409、Redis flag 遺失自動復原（System config is updatable by system administrator — 待 RBAC change 完成後補上）

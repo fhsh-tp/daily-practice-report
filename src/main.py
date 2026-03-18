@@ -82,6 +82,7 @@ _templates_dir = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(_templates_dir))
 
 # --- Routers ---
+from core.system.router import router as system_router
 from core.auth.router import router as auth_router
 from core.users.router import router as users_router
 from core.classes.router import router as classes_router
@@ -94,6 +95,7 @@ from community.feed.router import router as feed_router
 from gamification.prizes.router import router as prizes_router
 from gamification.leaderboard.router import router as leaderboard_router
 
+app.include_router(system_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(classes_router)
