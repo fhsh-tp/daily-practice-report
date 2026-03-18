@@ -33,11 +33,12 @@ def _collect_document_models():
 
 def _register_extensions():
     from extensions.registry import registry
+    from extensions.protocols.auth import AuthProvider
     from extensions.protocols.reward import RewardProvider
     from core.auth.local_provider import LocalAuthProvider
     from gamification.points.providers import CheckinRewardProvider, SubmissionRewardProvider
 
-    registry.register("auth", "local", LocalAuthProvider())
+    registry.register(AuthProvider, "local", LocalAuthProvider())
     registry.register(RewardProvider, "checkin", CheckinRewardProvider())
     registry.register(RewardProvider, "submission", SubmissionRewardProvider())
 
