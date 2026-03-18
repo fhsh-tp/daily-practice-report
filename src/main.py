@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from shared import SessionMiddleware, init_db
 from shared.database import get_motor_client
+from shared.redis import get_redis_client
 
 
 def _collect_document_models():
@@ -20,6 +21,7 @@ def _collect_document_models():
     from gamification.badges.models import BadgeDefinition, BadgeAward
     from community.feed.models import FeedPost, Reaction
     from gamification.prizes.models import Prize
+    from core.system.models import SystemConfig
     return [
         User, Class, ClassMembership,
         TaskTemplate, TaskAssignment, TaskSubmission,
@@ -28,6 +30,7 @@ def _collect_document_models():
         BadgeDefinition, BadgeAward,
         FeedPost, Reaction,
         Prize,
+        SystemConfig,
     ]
 
 
@@ -45,17 +48,27 @@ def _register_extensions():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from core.system.startup import init_redis_state, check_setup_state
+
+    # MongoDB
     client = get_motor_client()
     db_name = os.getenv("MONGO_DB_NAME", "dts2")
     database = client[db_name]
-
     document_models = _collect_document_models()
     await init_db(database=database, document_models=document_models)
+
+    # Redis — store client in app.state.redis
+    redis_client = get_redis_client()
+    await init_redis_state(app.state, redis_client)
+
+    # Setup state check
+    await check_setup_state(app.state)
 
     _register_extensions()
 
     yield
 
+    await app.state.redis.aclose()
     client.close()
 
 
