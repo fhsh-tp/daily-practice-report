@@ -21,10 +21,10 @@
 
 ## 5. Migration（Migration：User.role → User.permissions）
 
-- [ ] 5.1 建立 migration script，實作 Migration maps existing role field to permissions integer：`role = "student"` → `STUDENT` int、`role = "teacher"` → `TEACHER` int，移除 `role` 欄位（Student role migrated to permissions、Teacher role migrated to permissions）
+- [x] 5.1 建立 migration script，實作 Migration maps existing role field to permissions integer：`role = "student"` → `STUDENT` int、`role = "teacher"` → `TEACHER` int，移除 `role` 欄位（Student role migrated to permissions、Teacher role migrated to permissions）
 
 ## 6. 測試
 
 - [ ] 6.1 撰寫 `tests/auth/test_permissions.py`：覆蓋 flag 組合（Permission flag check with bitwise AND）、各 preset 組成驗證（Student preset grants self and read permissions 等）
 - [ ] 6.2 撰寫 `tests/auth/test_guards.py`：覆蓋 guard 放行（Authorized request passes guard）與 403 拒絕（Unauthorized request blocked by guard）
-- [ ] 6.3 撰寫 migration 整合測試，驗證 role 欄位正確轉換（User tags are updatable — 在 user router 測試中驗證）
+- [x] 6.3 撰寫 migration 整合測試，驗證 role 欄位正確轉換（User tags are updatable — 在 user router 測試中驗證）
