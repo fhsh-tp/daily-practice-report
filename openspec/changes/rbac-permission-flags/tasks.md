@@ -1,11 +1,11 @@
 ## 1. Permission 定義
 
-- [ ] 1.1 建立 `src/core/auth/permissions.py`，實作 Permission IntFlag 分 5 個 domain（Permission flags defined as IntFlag with five domains）：Self 0x001–0x008、Class 0x010–0x020、Task 0x040–0x080、User 0x100–0x200、System 0x400–0x800
-- [ ] 1.2 在同檔案中定義 Role Preset 存在 code，不入 DB（Role presets defined as module-level constants）：`STUDENT`、`TEACHER`、`USER_ADMIN`、`SYS_ADMIN` 四個 `Permission` 常數
+- [x] 1.1 建立 `src/core/auth/permissions.py`，實作 Permission IntFlag 分 5 個 domain（Permission flags defined as IntFlag with five domains）：Self 0x001–0x008、Class 0x010–0x020、Task 0x040–0x080、User 0x100–0x200、System 0x400–0x800
+- [x] 1.2 在同檔案中定義 Role Preset 存在 code，不入 DB（Role presets defined as module-level constants）：`STUDENT`、`TEACHER`、`USER_ADMIN`、`SYS_ADMIN` 四個 `Permission` 常數
 
 ## 2. Route 守衛
 
-- [ ] 2.1 建立 `src/core/auth/guards.py`，實作使用 require_permission FastAPI dependency 作為 route 守衛（Route guard enforces required permission flag）：`require_permission(flag: Permission)` dependency factory，未持有 flag 的請求回傳 HTTP 403
+- [x] 2.1 建立 `src/core/auth/guards.py`，實作使用 require_permission FastAPI dependency 作為 route 守衛（Route guard enforces required permission flag）：`require_permission(flag: Permission)` dependency factory，未持有 flag 的請求回傳 HTTP 403
 
 ## 3. User Model 更新
 
