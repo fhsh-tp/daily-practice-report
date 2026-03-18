@@ -59,3 +59,9 @@
 - [x] 11.2 新增 dashboard page unit test：確認學生與教師各自取得正確 context
 - [x] 11.3 新增 submit task page test：測試 PRG 成功/失敗 redirect，覆蓋 Student submission via browser form uses PRG pattern
 - [x] 11.4 確認現有 `tests/test_setup_wizard.py` 測試 PRG redirect，必要時更新
+
+## 12. Setup Guard 與 Admin 權限補強
+
+- [x] 12.1 在 `src/main.py` 新增 `SetupGuardMiddleware`（設計決策：SetupGuardMiddleware 強制進入 setup 程序）：繼承 `BaseHTTPMiddleware`，當 `app.state.system_config is None` 且請求路徑不以 `/setup` 開頭時，回傳 302 redirect 到 `/setup`
+- [x] 12.2 在 `src/core/auth/permissions.py` 新增 `SITE_ADMIN` permission preset（設計決策：SITE_ADMIN permission preset）= `TEACHER | MANAGE_USERS | READ_SYSTEM | WRITE_SYSTEM`（0xEFF），並更新 `src/core/system/router.py` setup wizard 建立 admin 帳號時賦予此 preset
+- [x] 12.3 更新 `src/pages/router.py` dashboard handler 與 `src/templates/student/dashboard.html`：實作 Dashboard permission flags 透過 handler context 傳入（設計決策：Dashboard permission flags 透過 handler context 傳入），預先計算 `can_manage_class`、`can_manage_tasks`、`can_manage_users`、`is_sys_admin` 布林值，新增管理入口區塊

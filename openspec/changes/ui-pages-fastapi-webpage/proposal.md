@@ -12,6 +12,9 @@
 - 未登入訪問需要認證的頁面時，redirect 到 `/pages/login?next=<original_path>`
 - Root `/` 根據登入狀態 redirect 到 dashboard 或 login
 - `lifespan` 啟動後將 `site_name` 注入 `WebPage.webpage_context`，供所有 template 使用
+- 新增 `SetupGuardMiddleware` 至 `main.py`：系統尚未設定時，強制將所有請求 redirect 到 `/setup`
+- 新增 `SITE_ADMIN` permission preset，並在 setup wizard 建立 admin 時賦予完整管理權限
+- Dashboard 管理入口：依 permission flags 顯示班級管理、任務模板、使用者管理、系統設定入口，即使管理員尚未加入任何班級亦可見
 
 ## Capabilities
 
@@ -22,7 +25,7 @@
 ### Modified Capabilities
 
 - `user-auth`: 新增 form-based login/logout page endpoint，login POST 採 PRG pattern
-- `setup-wizard`: `/setup` POST 改用 PRG pattern，錯誤訊息透過 query param 傳回
+- `setup-wizard`: `/setup` POST 改用 PRG pattern，錯誤訊息透過 query param 傳回；admin 帳號建立時賦予 `SITE_ADMIN` permissions
 - `task-submissions`: 補齊 submit task page route，POST 採 PRG pattern
 - `task-templates`: 補齊 teacher templates list 與 template form page routes
 - `checkin`: checkin POST 採 PRG pattern，redirect 回 dashboard
@@ -35,7 +38,7 @@
 
 - Affected specs: `web-pages`（新增）、`user-auth`、`setup-wizard`、`task-submissions`、`task-templates`、`checkin`、`community-feed`、`leaderboard`、`badge-system`、`points-system`
 - Affected code:
-  - `src/main.py` — 移除 Jinja2Templates，加入 WebPage context 初始化，root route 改為 redirect
+  - `src/main.py` — 移除 Jinja2Templates，加入 WebPage context 初始化，root route 改為 redirect，新增 `SetupGuardMiddleware`
   - `src/shared/webpage.py` — **NEW**
   - `src/pages/__init__.py` — **NEW**
   - `src/pages/router.py` — **NEW** (login, dashboard, root redirect)

@@ -67,6 +67,26 @@ API dependency (`get_current_user`) raise `HTTPException 401`，適合 JSON clie
 4. 更新 `main.py`：移除舊 Jinja2Templates，加入 WebPage lifespan 初始化
 5. 無資料庫 migration，無 rollback 複雜度
 
+### SetupGuardMiddleware 強制進入 Setup 程序
+
+系統第一次啟動時若尚未完成 setup，所有非 `/setup` 路徑的請求應強制 redirect 到 `/setup`，防止使用者在未設定狀態下存取任何功能。
+
+實作方式：在 `main.py` 加入 `SetupGuardMiddleware`（繼承 `BaseHTTPMiddleware`），攔截所有請求，若 `app.state.system_config is None` 且路徑不以 `/setup` 開頭，則回傳 302 redirect 到 `/setup`。Middleware 放在 `SessionMiddleware` 之後掛載。
+
+備選方案：在每個 router 加入個別 guard，但這樣容易遺漏新增的 route。統一的 middleware 確保全面覆蓋。
+
+### SITE_ADMIN Permission Preset
+
+Admin 帳號需要同時具備教師功能（管理課程、任務）、使用者管理、以及系統管理能力。定義 `SITE_ADMIN` preset = `TEACHER | MANAGE_USERS | READ_SYSTEM | WRITE_SYSTEM`（0xEFF），在 setup wizard 建立 admin 帳號時直接賦予此 preset。
+
+`SITE_ADMIN` 定義在 `core/auth/permissions.py`，與其他 role preset（`STUDENT`、`TEACHER`、`USER_ADMIN`、`SYS_ADMIN`）並列。這些 preset 僅作為程式碼常數，不儲存於資料庫。
+
+### Dashboard Permission Flags 透過 Handler Context 傳入
+
+Jinja2 模板不支援 Python bitwise `&` 運算子，無法在 template 內直接計算 `user.permissions & MANAGE_CLASS`。因此在 dashboard route handler 中預先計算所有布林值，以 `can_manage_class`、`can_manage_tasks`、`can_manage_users`、`is_sys_admin` 等 key 傳入 template context。
+
+Template 以 `{% if can_manage_class %}` 等條件分支控制管理入口的顯示，handler 負責計算，template 負責呈現，符合職責分離原則。
+
 ## Open Questions
 
 （無）
