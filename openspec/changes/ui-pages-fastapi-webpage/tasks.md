@@ -55,7 +55,7 @@
 
 ## 11. 測試
 
-- [ ] 11.1 新增 `tests/test_pages.py`：測試 login page GET、form login PRG（成功/失敗）、logout redirect、dashboard GET（需登入），覆蓋 All form POSTs use POST-Redirect-GET pattern
-- [ ] 11.2 新增 dashboard page unit test：確認學生與教師各自取得正確 context
-- [ ] 11.3 新增 submit task page test：測試 PRG 成功/失敗 redirect，覆蓋 Student submission via browser form uses PRG pattern
-- [ ] 11.4 確認現有 `tests/test_setup_wizard.py` 測試 PRG redirect，必要時更新
+- [x] 11.1 新增 `tests/test_pages.py`：測試 login page GET、form login PRG（成功/失敗）、logout redirect、dashboard GET（需登入），覆蓋 All form POSTs use POST-Redirect-GET pattern
+- [x] 11.2 新增 dashboard page unit test：確認學生與教師各自取得正確 context
+- [x] 11.3 新增 submit task page test：測試 PRG 成功/失敗 redirect，覆蓋 Student submission via browser form uses PRG pattern
+- [x] 11.4 確認現有 `tests/test_setup_wizard.py` 測試 PRG redirect，必要時更新
