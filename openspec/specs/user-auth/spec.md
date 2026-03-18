@@ -8,17 +8,147 @@ TBD - created by archiving change 'daily-training-submission-system'. Update Pur
 
 ### Requirement: User registration by teacher
 
-Teachers SHALL be able to create student accounts. Each account MUST include a unique username, hashed password, display name, and role (student or teacher).
+Users with `MANAGE_USERS` permission SHALL be able to create new accounts. Each account MUST include a unique username, hashed password, display name, permissions (as an integer from a Role Preset), and an optional `tags` list. The `role` field is removed.
 
-#### Scenario: Teacher creates student account
+#### Scenario: User admin creates student account
 
-- **WHEN** a teacher submits a valid username, password, and display name
-- **THEN** the system SHALL create the account with role=student and return the new user ID
+- **WHEN** a user with `MANAGE_USERS` permission submits a valid username, password, display name, and permissions value
+- **THEN** the system SHALL create the account with the given permissions and return the new user ID
 
 #### Scenario: Duplicate username rejected
 
-- **WHEN** a teacher submits a username that already exists
+- **WHEN** a user submits a username that already exists
 - **THEN** the system SHALL return an error and SHALL NOT create a duplicate account
+
+
+<!-- @trace
+source: rbac-permission-flags
+updated: 2026-03-18
+code:
+  - docker-compose.yml
+  - src/core/auth/guards.py
+  - src/tasks/templates/router.py
+  - src/tasks/checkin/router.py
+  - src/core/system/router.py
+  - scripts/migrations/role_to_permissions.py
+  - src/gamification/prizes/router.py
+  - src/core/system/__init__.py
+  - src/core/classes/service.py
+  - src/gamification/leaderboard/router.py
+  - src/core/system/models.py
+  - src/tasks/submissions/router.py
+  - pyproject.toml
+  - src/core/system/startup.py
+  - src/community/feed/router.py
+  - src/core/auth/jwt.py
+  - src/core/auth/deps.py
+  - src/core/auth/router.py
+  - src/shared/redis.py
+  - src/shared/__init__.py
+  - tests/auth/__init__.py
+  - src/core/classes/router.py
+  - src/templates/setup.html
+  - src/gamification/badges/router.py
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/core/users/router.py
+  - src/gamification/points/router.py
+  - uv.lock
+  - src/core/users/models.py
+tests:
+  - tests/auth/test_role_migration.py
+  - tests/test_redis_shared.py
+  - tests/auth/test_deps.py
+  - tests/auth/test_permissions.py
+  - tests/auth/test_user_model.py
+  - tests/test_setup_wizard.py
+  - tests/auth/test_guards.py
+  - tests/test_classes.py
+  - tests/test_setup_startup.py
+  - tests/test_system_config.py
+  - tests/test_auth.py
+  - tests/auth/test_user_router.py
+-->
+
+---
+### Requirement: User model stores permissions as integer and supports tags
+
+The `User` Beanie Document MUST store `permissions: int` instead of `role: str`. The document MUST also include `tags: list[str]` defaulting to an empty list. Both fields MUST be included in all user response schemas.
+
+#### Scenario: User created with permissions preset
+
+- **WHEN** a new user is created with a Role Preset value
+- **THEN** the stored `permissions` field MUST equal the integer value of that preset
+
+#### Scenario: User tags are updatable
+
+- **WHEN** a user with `MANAGE_USERS` permission updates another user's tags
+- **THEN** the `tags` field MUST be replaced with the new list
+
+
+<!-- @trace
+source: rbac-permission-flags
+updated: 2026-03-18
+code:
+  - docker-compose.yml
+  - src/core/auth/guards.py
+  - src/tasks/templates/router.py
+  - src/tasks/checkin/router.py
+  - src/core/system/router.py
+  - scripts/migrations/role_to_permissions.py
+  - src/gamification/prizes/router.py
+  - src/core/system/__init__.py
+  - src/core/classes/service.py
+  - src/gamification/leaderboard/router.py
+  - src/core/system/models.py
+  - src/tasks/submissions/router.py
+  - pyproject.toml
+  - src/core/system/startup.py
+  - src/community/feed/router.py
+  - src/core/auth/jwt.py
+  - src/core/auth/deps.py
+  - src/core/auth/router.py
+  - src/shared/redis.py
+  - src/shared/__init__.py
+  - tests/auth/__init__.py
+  - src/core/classes/router.py
+  - src/templates/setup.html
+  - src/gamification/badges/router.py
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/core/users/router.py
+  - src/gamification/points/router.py
+  - uv.lock
+  - src/core/users/models.py
+tests:
+  - tests/auth/test_role_migration.py
+  - tests/test_redis_shared.py
+  - tests/auth/test_deps.py
+  - tests/auth/test_permissions.py
+  - tests/auth/test_user_model.py
+  - tests/test_setup_wizard.py
+  - tests/auth/test_guards.py
+  - tests/test_classes.py
+  - tests/test_setup_startup.py
+  - tests/test_system_config.py
+  - tests/test_auth.py
+  - tests/auth/test_user_router.py
+-->
+
+---
+### Requirement: Migration maps existing role field to permissions integer
+
+The system SHALL provide a migration script that converts existing `User` documents from `role: "student"` to `permissions = STUDENT` and `role: "teacher"` to `permissions = TEACHER`. The `role` field MUST be removed after migration.
+
+#### Scenario: Student role migrated to permissions
+
+- **WHEN** the migration script runs on a user with `role = "student"`
+- **THEN** the user's document MUST have `permissions` set to the `STUDENT` preset integer and `role` field removed
+
+#### Scenario: Teacher role migrated to permissions
+
+- **WHEN** the migration script runs on a user with `role = "teacher"`
+- **THEN** the user's document MUST have `permissions` set to the `TEACHER` preset integer and `role` field removed
 
 
 <!-- @trace
@@ -118,6 +248,56 @@ tests:
   - tests/test_auth.py
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
+-->
+
+
+<!-- @trace
+source: rbac-permission-flags
+updated: 2026-03-18
+code:
+  - docker-compose.yml
+  - src/core/auth/guards.py
+  - src/tasks/templates/router.py
+  - src/tasks/checkin/router.py
+  - src/core/system/router.py
+  - scripts/migrations/role_to_permissions.py
+  - src/gamification/prizes/router.py
+  - src/core/system/__init__.py
+  - src/core/classes/service.py
+  - src/gamification/leaderboard/router.py
+  - src/core/system/models.py
+  - src/tasks/submissions/router.py
+  - pyproject.toml
+  - src/core/system/startup.py
+  - src/community/feed/router.py
+  - src/core/auth/jwt.py
+  - src/core/auth/deps.py
+  - src/core/auth/router.py
+  - src/shared/redis.py
+  - src/shared/__init__.py
+  - tests/auth/__init__.py
+  - src/core/classes/router.py
+  - src/templates/setup.html
+  - src/gamification/badges/router.py
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/core/users/router.py
+  - src/gamification/points/router.py
+  - uv.lock
+  - src/core/users/models.py
+tests:
+  - tests/auth/test_role_migration.py
+  - tests/test_redis_shared.py
+  - tests/auth/test_deps.py
+  - tests/auth/test_permissions.py
+  - tests/auth/test_user_model.py
+  - tests/test_setup_wizard.py
+  - tests/auth/test_guards.py
+  - tests/test_classes.py
+  - tests/test_setup_startup.py
+  - tests/test_system_config.py
+  - tests/test_auth.py
+  - tests/auth/test_user_router.py
 -->
 
 ---
