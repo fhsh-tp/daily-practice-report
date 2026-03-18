@@ -110,3 +110,34 @@ async def delete_template_endpoint(
         await delete_template(template_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+from fastapi import Request
+from pages.deps import get_page_user
+from shared.webpage import webpage
+
+
+@router.get("/pages/teacher/classes/{class_id}/templates", name="templates_list_page")
+@webpage.page("teacher/templates_list.html")
+async def templates_list_page(
+    request: Request,
+    class_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from tasks.templates.models import TaskTemplate as TT
+    templates = await TT.find(TT.class_id == class_id).to_list()
+    from core.classes.models import Class
+    cls = await Class.get(class_id)
+    class_name = cls.name if cls else class_id
+    return {"current_user": teacher, "class_id": class_id, "class_name": class_name, "templates": templates}
+
+
+@router.get("/pages/teacher/classes/{class_id}/templates/new", name="template_form_page")
+@webpage.page("teacher/template_form.html")
+async def template_form_page(
+    request: Request,
+    class_id: str,
+    error: str | None = None,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    return {"current_user": teacher, "class_id": class_id, "template": None, "error": error}

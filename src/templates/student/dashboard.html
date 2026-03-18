@@ -14,7 +14,7 @@
     {% if class_status.already_checked_in %}
       <p>✅ 今日已簽到</p>
     {% elif class_status.checkin_open %}
-      <form method="post" action="/classes/{{ class_status.class_id }}/checkin">
+      <form method="post" action="/classes/{{ class_status.class_id }}/checkin/browser">
         <button type="submit">立即簽到</button>
       </form>
       {% if class_status.closes_at %}

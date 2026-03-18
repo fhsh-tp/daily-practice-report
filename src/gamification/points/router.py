@@ -1,7 +1,5 @@
 """Points router."""
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
-from pathlib import Path
 from pydantic import BaseModel
 
 from core.auth.deps import get_current_user
@@ -15,8 +13,7 @@ from gamification.points.service import (
     get_transaction_history,
     revoke_points,
 )
-
-_templates = Jinja2Templates(directory=str(Path(__file__).parent.parent.parent.parent / "templates"))
+from shared.webpage import webpage
 
 router = APIRouter(tags=["points"])
 
@@ -93,7 +90,8 @@ async def update_point_config(
     return {"class_id": class_id, "checkin_points": body.checkin_points, "submission_points": body.submission_points}
 
 
-@router.get("/pages/classes/{class_id}/points")
+@router.get("/pages/classes/{class_id}/points", name="points_manage_page")
+@webpage.page("teacher/points_manage.html")
 async def points_manage_page(
     request: Request,
     class_id: str,
@@ -124,11 +122,10 @@ async def points_manage_page(
     config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
     config_data = config or ClassPointConfig(class_id=class_id)
 
-    return _templates.TemplateResponse("teacher/points_manage.html", {
-        "request": request,
+    return {
         "current_user": teacher,
         "class_id": class_id,
         "class_name": cls.name,
         "members": members_data,
         "config": config_data,
-    })
+    }

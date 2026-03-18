@@ -94,9 +94,11 @@ from gamification.badges.router import router as badges_router
 from community.feed.router import router as feed_router
 from gamification.prizes.router import router as prizes_router
 from gamification.leaderboard.router import router as leaderboard_router
+from pages.router import router as pages_router
 
 app.include_router(system_router)
 app.include_router(auth_router)
+app.include_router(pages_router)
 app.include_router(users_router)
 app.include_router(classes_router)
 app.include_router(templates_router)

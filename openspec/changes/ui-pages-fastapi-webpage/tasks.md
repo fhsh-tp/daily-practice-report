@@ -34,24 +34,24 @@
 
 ## 7. 教師 Task Template 管理頁面
 
-- [ ] 7.1 在 `src/tasks/templates/router.py` 新增 `GET /pages/teacher/classes/{class_id}/templates`（name=`templates_list_page`），使用 `require_permission(MANAGE_TASKS)` dependency，渲染 `teacher/templates_list.html`，實作 Teacher template list HTML page
-- [ ] 7.2 在 `src/tasks/templates/router.py` 新增 `GET /pages/teacher/classes/{class_id}/templates/new`（name=`template_form_page`），使用 `require_permission(MANAGE_TASKS)` dependency，讀取 `error` query param，渲染 `teacher/template_form.html`，實作 Teacher template form HTML page
-- [ ] 7.3 更新 `src/templates/teacher/templates_list.html` 與 `teacher/template_form.html`：確認 context 變數對齊
+- [x] 7.1 在 `src/tasks/templates/router.py` 新增 `GET /pages/teacher/classes/{class_id}/templates`（name=`templates_list_page`），使用 `require_permission(MANAGE_TASKS)` dependency，渲染 `teacher/templates_list.html`，實作 Teacher template list HTML page
+- [x] 7.2 在 `src/tasks/templates/router.py` 新增 `GET /pages/teacher/classes/{class_id}/templates/new`（name=`template_form_page`），使用 `require_permission(MANAGE_TASKS)` dependency，讀取 `error` query param，渲染 `teacher/template_form.html`，實作 Teacher template form HTML page
+- [x] 7.3 更新 `src/templates/teacher/templates_list.html` 與 `teacher/template_form.html`：確認 context 變數對齊
 
 ## 8. Checkin PRG
 
-- [ ] 8.1 修改 `src/tasks/checkin/router.py` `POST /classes/{class_id}/checkin`：改用 `@webpage.redirect()`，成功或已簽到 redirect 到 `dashboard_page`，視窗關閉 redirect 到 `dashboard_page` with `include_query_params(error=...)`，實作 Student performs daily check-in via browser form
+- [x] 8.1 修改 `src/tasks/checkin/router.py` `POST /classes/{class_id}/checkin`：改用 `@webpage.redirect()`，成功或已簽到 redirect 到 `dashboard_page`，視窗關閉 redirect 到 `dashboard_page` with `include_query_params(error=...)`，實作 Student performs daily check-in via browser form
 
 ## 9. 現有 Page Handler 遷移 WebPage
 
-- [ ] 9.1 修改 `src/community/feed/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/feed` 改用 `@webpage.page()`，實作 Community feed HTML page
-- [ ] 9.2 修改 `src/gamification/leaderboard/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/leaderboard` 改用 `@webpage.page()`，實作 Leaderboard HTML page
-- [ ] 9.3 修改 `src/gamification/badges/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/students/me/badges` 改用 `@webpage.page()`，實作 Student badges HTML page
-- [ ] 9.4 修改 `src/gamification/points/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/points` 改用 `@webpage.page()`，實作 Teacher points management HTML page
+- [x] 9.1 修改 `src/community/feed/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/feed` 改用 `@webpage.page()`，實作 Community feed HTML page
+- [x] 9.2 修改 `src/gamification/leaderboard/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/leaderboard` 改用 `@webpage.page()`，實作 Leaderboard HTML page
+- [x] 9.3 修改 `src/gamification/badges/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/students/me/badges` 改用 `@webpage.page()`，實作 Student badges HTML page
+- [x] 9.4 修改 `src/gamification/points/router.py`：移除本地 `Jinja2Templates`，改用 `shared.webpage`，`GET /pages/classes/{class_id}/points` 改用 `@webpage.page()`，實作 Teacher points management HTML page
 
 ## 10. Mount pages router 與整合
 
-- [ ] 10.1 在 `src/main.py` import 並 `app.include_router(pages_router)`，確保 login / dashboard routes 已掛載
+- [x] 10.1 在 `src/main.py` import 並 `app.include_router(pages_router)`，確保 login / dashboard routes 已掛載
 
 ## 11. 測試
 

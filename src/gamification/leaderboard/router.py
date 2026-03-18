@@ -1,20 +1,14 @@
 """Leaderboard router."""
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
 
 from core.auth.deps import get_current_user
 from core.auth.permissions import MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
+from shared.webpage import webpage
 
 router = APIRouter(tags=["leaderboard"])
-
-_templates = Jinja2Templates(
-    directory=str(Path(__file__).parent.parent.parent.parent / "templates")
-)
 
 
 async def _build_class_leaderboard(class_id: str) -> list[dict]:
@@ -88,7 +82,8 @@ async def cross_class_leaderboard(user: User = Depends(get_current_user)):
     return {"leaderboard": ranked}
 
 
-@router.get("/pages/classes/{class_id}/leaderboard")
+@router.get("/pages/classes/{class_id}/leaderboard", name="leaderboard_page")
+@webpage.page("community/leaderboard.html")
 async def leaderboard_page(
     request: Request,
     class_id: str,
@@ -102,16 +97,14 @@ async def leaderboard_page(
     entries = await _build_class_leaderboard(class_id) if visible else []
 
     from gamification.badges.models import BadgeAward
-    # Attach badge count per student
     for entry in entries:
         count = await BadgeAward.find(BadgeAward.student_id == entry["student_id"]).count()
         entry["badge_count"] = count
 
-    return _templates.TemplateResponse("community/leaderboard.html", {
-        "request": request,
+    return {
         "current_user": user,
         "class_id": class_id,
         "class_name": cls.name,
         "visible": visible,
         "leaderboard": entries,
-    })
+    }
