@@ -21,13 +21,13 @@
 
 ## 5. Setup Wizard 路由
 
-- [ ] 5.1 建立 `src/core/system/router.py`，實作 Setup wizard is shown on first deployment：`GET /setup`（Setup 頁面用 Jinja2 HTML，不依賴前端框架）已設定則 302 redirect 到 `/`；未設定則回傳 Jinja2 setup.html（Setup page blocked after configuration）
-- [ ] 5.2 新增 `POST /setup`（Setup wizard form submits initial configuration）：驗證表單（site name、admin username、admin password）；已完成則回傳 409 Conflict（Duplicate setup attempt via API）
-- [ ] 5.3 `POST /setup` 成功時：建立 `SystemConfig` document、建立 admin `User`、設 Redis `system:configured = "true"`、302 redirect 到 `/`（Successful setup submission）
+- [x] 5.1 建立 `src/core/system/router.py`，實作 Setup wizard is shown on first deployment：`GET /setup`（Setup 頁面用 Jinja2 HTML，不依賴前端框架）已設定則 302 redirect 到 `/`；未設定則回傳 Jinja2 setup.html（Setup page blocked after configuration）
+- [x] 5.2 新增 `POST /setup`（Setup wizard form submits initial configuration）：驗證表單（site name、admin username、admin password）；已完成則回傳 409 Conflict（Duplicate setup attempt via API）
+- [x] 5.3 `POST /setup` 成功時：建立 `SystemConfig` document、建立 admin `User`、設 Redis `system:configured = "true"`、302 redirect 到 `/`（Successful setup submission）
 
 ## 6. Setup HTML 頁面
 
-- [ ] 6.1 建立 `src/templates/setup.html`（Jinja2），包含 site name、admin username、admin password 欄位，表單 action 指向 `POST /setup`
+- [x] 6.1 建立 `src/templates/setup.html`（Jinja2），包含 site name、admin username、admin password 欄位，表單 action 指向 `POST /setup`
 
 ## 7. 整合與測試
 
