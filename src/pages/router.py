@@ -111,6 +111,7 @@ async def dashboard_page(
         "current_user": current_user,
         "classes": classes,
         "can_manage_class": can_manage_class,
+        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
@@ -155,12 +156,14 @@ def _compute_initial_levels(permissions: int, schema: list) -> dict:
 
 def _admin_context(current_user: User) -> dict:
     """Common context injected into every admin page."""
-    from core.auth.permissions import MANAGE_USERS, WRITE_SYSTEM
+    from core.auth.permissions import MANAGE_USERS, WRITE_SYSTEM, MANAGE_ALL_CLASSES
+    can_manage_all = bool(current_user.permissions & MANAGE_ALL_CLASSES)
     return {
         "current_user": current_user,
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
-        "can_manage_class": False,
+        "can_manage_class": can_manage_all,
+        "can_manage_all_classes": can_manage_all,
         "can_manage_tasks": False,
         "classes": [],
     }
@@ -184,6 +187,13 @@ async def _require_manage_users(current_user: User = Depends(get_page_user)) -> 
 async def _require_write_system(current_user: User = Depends(get_page_user)) -> User:
     from core.auth.permissions import WRITE_SYSTEM
     if not (current_user.permissions & WRITE_SYSTEM):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return current_user
+
+
+async def _require_manage_class(current_user: User = Depends(get_page_user)) -> User:
+    from core.auth.permissions import MANAGE_ALL_CLASSES
+    if not (current_user.permissions & MANAGE_ALL_CLASSES):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     return current_user
 
@@ -380,6 +390,47 @@ async def admin_user_edit_submit(
     await user.save()
     success_url = request.url_for("admin_users_list_page").include_query_params(success="使用者已更新")
     return (str(success_url), 302)
+
+
+@router.get("/admin/classes/", name="admin_classes_list_page")
+@webpage.page("admin/classes_list.html")
+async def admin_classes_list(
+    request: Request,
+    page: int = 1,
+    page_size: int = 20,
+    current_user: User = Depends(_require_manage_class),
+):
+    from core.classes.models import Class, ClassMembership
+    skip = (page - 1) * page_size
+    all_classes = await Class.find_all().to_list()
+    total = len(all_classes)
+    page_classes = all_classes[skip: skip + page_size]
+
+    classes = []
+    for cls in page_classes:
+        member_count = await ClassMembership.find(ClassMembership.class_id == str(cls.id)).count()
+        # Resolve owner username
+        owner = await User.get(cls.owner_id) if cls.owner_id else None
+        classes.append({
+            "id": str(cls.id),
+            "name": cls.name,
+            "owner_id": cls.owner_id,
+            "owner_name": owner.display_name if owner else cls.owner_id,
+            "invite_code": cls.invite_code,
+            "is_archived": cls.is_archived,
+            "member_count": member_count,
+        })
+
+    return {
+        **_admin_context(current_user),
+        "classes": classes,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "admin_section": "classes",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
 
 
 @router.get("/admin/system/", name="admin_system_page")

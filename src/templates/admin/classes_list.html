@@ -1,0 +1,103 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}班級管理 — {{ webpage.site_name }}{% endblock %}
+{% block admin_title %}班級管理{% endblock %}
+{% block admin_subtitle %}共 {{ total }} 個班級{% endblock %}
+
+{% block admin_content %}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+
+  {# Table #}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">班級名稱</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">擁有者</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">成員數</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">狀態</th>
+          <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for cls in classes %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100" id="class-row-{{ cls.id }}">
+          <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+            {{ cls.name }}
+          </td>
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{{ cls.owner_name }}</td>
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ cls.member_count }}</td>
+          <td class="px-4 py-3">
+            {% if cls.is_archived %}
+            <span class="inline-block px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">已封存</span>
+            {% else %}
+            <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">運作中</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <a href="/pages/teacher/classes/{{ cls.id }}/members"
+               class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">成員管理</a>
+            <button onclick="toggleArchive('{{ cls.id }}', {{ 'true' if cls.is_archived else 'false' }}, '{{ cls.name }}')"
+                    class="text-xs font-medium cursor-pointer
+                      {% if cls.is_archived %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}
+                      hover:underline mr-3">
+              {% if cls.is_archived %}取消封存{% else %}封存{% endif %}
+            </button>
+            <button onclick="toggleVisibility('{{ cls.id }}', '{{ cls.name }}')"
+                    class="text-gray-500 dark:text-gray-400 hover:underline text-xs font-medium cursor-pointer">
+              隱藏
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">尚無班級</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  {% if total > page_size %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-800">
+    <span class="text-sm text-gray-500 dark:text-gray-400">第 {{ page }} 頁，共 {{ total }} 筆</span>
+    <div class="flex gap-2">
+      {% if page > 1 %}
+      <a href="?page={{ page - 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">上一頁</a>
+      {% endif %}
+      {% if (page * page_size) < total %}
+      <a href="?page={{ page + 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">下一頁</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleArchive(classId, isArchived, name) {
+  const action = isArchived ? '取消封存' : '封存';
+  if (!confirm(`確定要${action}班級「${name}」嗎？`)) return;
+  const endpoint = isArchived ? 'unarchive' : 'archive';
+  const resp = await fetch(`/classes/${classId}/${endpoint}`, { method: 'PATCH' });
+  if (resp.ok) {
+    location.reload();
+  } else {
+    alert(`${action}失敗`);
+  }
+}
+
+async function toggleVisibility(classId, name) {
+  if (!confirm(`確定要隱藏班級「${name}」嗎？學生將無法看到此班級。`)) return;
+  const resp = await fetch(`/classes/${classId}/archive`, { method: 'PATCH' });
+  if (resp.ok) {
+    location.reload();
+  } else {
+    alert('操作失敗');
+  }
+}
+</script>
+{% endblock %}

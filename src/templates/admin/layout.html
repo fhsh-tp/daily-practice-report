@@ -46,6 +46,13 @@
       使用者管理
     </a>
     {% endif %}
+    {% if can_manage_class %}
+    <a href="/pages/admin/classes/"
+       class="admin-tab px-4 py-2 text-sm font-medium rounded-t-lg border border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150
+              {% if admin_section == 'classes' %}admin-nav-active border-gray-200 dark:border-gray-700 border-b-white dark:border-b-gray-950{% else %}text-gray-600 dark:text-gray-400{% endif %}">
+      班級管理
+    </a>
+    {% endif %}
     {% if is_sys_admin %}
     <a href="/pages/admin/system/"
        class="admin-tab px-4 py-2 text-sm font-medium rounded-t-lg border border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150

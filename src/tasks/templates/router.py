@@ -182,3 +182,34 @@ async def template_form_page(
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     return {"current_user": teacher, "class_id": class_id, "template": None, "error": error}
+
+
+@router.get("/pages/teacher/templates/{template_id}/edit", name="template_edit_page")
+@webpage.page("teacher/template_form.html")
+async def template_edit_page(
+    request: Request,
+    template_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from tasks.templates.models import TaskTemplate as TT
+    tmpl = await TT.get(template_id)
+    if tmpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"current_user": teacher, "class_id": tmpl.class_id, "template": tmpl, "error": None}
+
+
+@router.get("/pages/teacher/templates/{template_id}/assign", name="template_assign_page")
+@webpage.page("teacher/template_assign.html")
+async def template_assign_page(
+    request: Request,
+    template_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from tasks.templates.models import TaskTemplate as TT
+    tmpl = await TT.get(template_id)
+    if tmpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    from core.classes.models import Class
+    cls = await Class.get(tmpl.class_id)
+    class_name = cls.name if cls else tmpl.class_id
+    return {"current_user": teacher, "class_id": tmpl.class_id, "class_name": class_name, "template": tmpl}
