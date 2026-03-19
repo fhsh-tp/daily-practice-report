@@ -448,3 +448,50 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Leaderboard HTML page
+
+The system SHALL serve a leaderboard page at `GET /pages/classes/{class_id}/leaderboard`. The page SHALL require authentication. It SHALL display ranked student entries when the leaderboard is enabled for the class, or a "not enabled" message otherwise.
+
+#### Scenario: Leaderboard page shown when enabled
+
+- **WHEN** an authenticated user navigates to `GET /pages/classes/{class_id}/leaderboard` and the class has `leaderboard_enabled = true`
+- **THEN** the system SHALL render an HTML page with ranked student entries by points
+
+#### Scenario: Leaderboard page shows disabled message
+
+- **WHEN** an authenticated user navigates to the leaderboard page and the class does not have leaderboard enabled
+- **THEN** the system SHALL render an HTML page indicating the leaderboard is not available
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->

@@ -2,12 +2,32 @@
 import secrets
 
 from core.classes.models import Class, ClassMembership
-from core.users.models import User
+from core.auth.permissions import MANAGE_ALL_CLASSES, MANAGE_OWN_CLASS
+from core.users.models import IdentityTag, User
 
 
 def _new_invite_code() -> str:
     """Generate a URL-safe 8-character invite code."""
     return secrets.token_urlsafe(6).upper()[:8]
+
+
+async def can_manage_class(user: User, cls: Class) -> bool:
+    """
+    Return True if user is authorised to manage cls.
+
+    Rules (design: can_manage() 集中在 service 層判斷):
+    - MANAGE_ALL_CLASSES → always True (classmanager level)
+    - MANAGE_OWN_CLASS   → True only if user has a 'teacher' membership in cls
+    """
+    if user.permissions & MANAGE_ALL_CLASSES:
+        return True
+    if user.permissions & MANAGE_OWN_CLASS:
+        membership = await ClassMembership.find_one(
+            ClassMembership.class_id == str(cls.id),
+            ClassMembership.user_id == str(user.id),
+        )
+        return membership is not None and membership.role == "teacher"
+    return False
 
 
 async def create_class(
@@ -56,7 +76,7 @@ async def join_class_by_code(user: User, invite_code: str) -> ClassMembership:
     membership = ClassMembership(
         class_id=str(cls.id),
         user_id=str(user.id),
-        role=user.role,
+        role="student",
     )
     await membership.insert()
     return membership
@@ -78,15 +98,15 @@ async def join_class_by_id(user: User, class_id: str) -> ClassMembership:
     membership = ClassMembership(
         class_id=class_id,
         user_id=str(user.id),
-        role=user.role,
+        role="student",
     )
     await membership.insert()
     return membership
 
 
 async def get_public_classes() -> list[Class]:
-    """Return all public classes."""
-    return await Class.find(Class.visibility == "public").to_list()
+    """Return all public non-archived classes."""
+    return await Class.find(Class.visibility == "public", Class.is_archived == False).to_list()
 
 
 async def get_class_members(class_id: str) -> list[ClassMembership]:
@@ -139,3 +159,67 @@ async def set_visibility(class_id: str, visibility: str) -> Class:
     cls.visibility = visibility
     await cls.save()
     return cls
+
+
+async def search_students_for_invite(
+    class_id: str,
+    q: str,
+    search_type: str = "name",
+) -> list[dict]:
+    """
+    Search for students not yet in class_id.
+    search_type: 'name' searches User.name, 'class_name' searches student_profile.class_name
+    Returns list of {user_id, display_name, name, class_name, seat_number}.
+    """
+    # Get existing member IDs
+    memberships = await ClassMembership.find(
+        ClassMembership.class_id == class_id
+    ).to_list()
+    member_ids = {m.user_id for m in memberships}
+
+    # Find all users with STUDENT identity tag
+    all_students = await User.find(
+        User.identity_tags == IdentityTag.STUDENT
+    ).to_list()
+
+    results = []
+    q_lower = q.lower()
+    for user in all_students:
+        if str(user.id) in member_ids:
+            continue
+        if search_type == "class_name":
+            field_val = (user.student_profile.class_name if user.student_profile else "").lower()
+        else:
+            field_val = user.name.lower()
+        if q_lower in field_val:
+            results.append({
+                "user_id": str(user.id),
+                "display_name": user.display_name,
+                "name": user.name,
+                "class_name": user.student_profile.class_name if user.student_profile else "",
+                "seat_number": user.student_profile.seat_number if user.student_profile else 0,
+            })
+    return results
+
+
+async def batch_invite_students(class_id: str, user_ids: list[str]) -> int:
+    """
+    Directly add users to a class as students. Silently skips existing members.
+    Returns count of newly added members.
+    """
+    added = 0
+    for uid in user_ids:
+        existing = await ClassMembership.find_one(
+            ClassMembership.class_id == class_id,
+            ClassMembership.user_id == uid,
+        )
+        if existing:
+            continue
+        membership = ClassMembership(
+            class_id=class_id,
+            user_id=uid,
+            role="student",
+        )
+        await membership.insert()
+        added += 1
+    return added

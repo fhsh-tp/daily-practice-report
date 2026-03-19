@@ -16,6 +16,7 @@ class Class(Document):
     owner_id: str
     invite_code: str
     leaderboard_enabled: bool = True
+    is_archived: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:

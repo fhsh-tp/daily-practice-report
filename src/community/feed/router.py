@@ -1,20 +1,15 @@
 """Community feed router."""
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from community.feed.models import FeedPost, Reaction
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import ClassMembership
 from core.users.models import User
+from shared.webpage import webpage
 
 router = APIRouter(tags=["feed"])
-
-_templates = Jinja2Templates(
-    directory=str(Path(__file__).parent.parent.parent.parent / "templates")
-)
 
 
 async def _assert_member(class_id: str, user_id: str) -> None:
@@ -140,7 +135,7 @@ async def delete_post(
         raise HTTPException(status_code=404, detail="Post not found")
 
     # Teacher or own post
-    is_teacher = user.role == "teacher"
+    is_teacher = bool(user.permissions & MANAGE_CLASS)
     is_own = post.student_id == str(user.id)
     if not (is_teacher or is_own):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -149,7 +144,8 @@ async def delete_post(
     return {"deleted": True}
 
 
-@router.get("/pages/classes/{class_id}/feed")
+@router.get("/pages/classes/{class_id}/feed", name="feed_page")
+@webpage.page("community/feed.html")
 async def feed_page(
     request: Request,
     class_id: str,
@@ -174,10 +170,9 @@ async def feed_page(
             "is_own": post.student_id == str(user.id),
         })
 
-    return _templates.TemplateResponse("community/feed.html", {
-        "request": request,
+    return {
         "current_user": user,
         "class_id": class_id,
         "class_name": cls.name if cls else class_id,
         "feed": feed_data,
-    })
+    }

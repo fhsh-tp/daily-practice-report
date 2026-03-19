@@ -1,21 +1,18 @@
 """Badges router."""
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.guards import require_permission
+from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from gamification.badges.models import BadgeAward, BadgeDefinition
 from gamification.badges.service import award_badge, get_student_badges
+from shared.webpage import webpage
 
 router = APIRouter(tags=["badges"])
-
-_templates = Jinja2Templates(
-    directory=str(Path(__file__).parent.parent.parent.parent / "templates")
-)
 
 
 class BadgeCreateRequest(BaseModel):
@@ -34,7 +31,7 @@ class ManualAwardRequest(BaseModel):
 async def create_badge(
     class_id: str,
     body: BadgeCreateRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     badge = BadgeDefinition(
         class_id=class_id,
@@ -53,7 +50,7 @@ async def manual_award_badge(
     class_id: str,
     badge_id: str,
     body: ManualAwardRequest,
-    teacher: User = Depends(require_teacher()),
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
     badge = await BadgeDefinition.get(badge_id)
     if badge is None or badge.class_id != class_id:
@@ -90,14 +87,11 @@ async def my_badges(user: User = Depends(get_current_user)):
     ]
 
 
-@router.get("/pages/students/me/badges")
+@router.get("/pages/students/me/badges", name="badges_page")
+@webpage.page("student/badges.html")
 async def badges_page(
     request: Request,
     user: User = Depends(get_current_user),
 ):
     badges = await get_student_badges(str(user.id))
-    return _templates.TemplateResponse("student/badges.html", {
-        "request": request,
-        "current_user": user,
-        "badges": badges,
-    })
+    return {"current_user": user, "badges": badges}

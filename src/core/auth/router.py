@@ -2,14 +2,16 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
 from core.auth.jwt import create_access_token
 from core.auth.password import hash_password, verify_password
 from core.users.models import User
 from extensions.registry import registry
 from extensions.protocols import AuthProvider
+from shared.webpage import webpage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,6 +29,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str
+
+
 @router.post("/login")
 async def login(body: LoginRequest, response: Response):
     provider: AuthProvider = registry.get(AuthProvider, "local")
@@ -40,7 +46,7 @@ async def login(body: LoginRequest, response: Response):
             detail="Invalid username or password",
         )
 
-    token = create_access_token(user_id=str(user.id), role=user.role)
+    token = create_access_token(user_id=str(user.id), permissions=user.permissions)
     response.set_cookie(
         key=_COOKIE_NAME,
         value=token,
@@ -48,13 +54,15 @@ async def login(body: LoginRequest, response: Response):
         samesite="lax",
         max_age=_COOKIE_MAX_AGE,
     )
-    return {"message": "Logged in", "role": user.role}
+    return {"message": "Logged in", "permissions": user.permissions}
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie(key=_COOKIE_NAME)
-    return {"message": "Logged out"}
+@webpage.redirect(status_code=302)
+async def logout(request: Request):
+    redirect = RedirectResponse(url=str(request.url_for("login_page")), status_code=302)
+    redirect.delete_cookie(key=_COOKIE_NAME)
+    return redirect
 
 
 @router.get("/me")
@@ -63,8 +71,20 @@ async def me(current_user: User = Depends(get_current_user)):
         "id": str(current_user.id),
         "username": current_user.username,
         "display_name": current_user.display_name,
-        "role": current_user.role,
+        "permissions": current_user.permissions,
+        "tags": current_user.tags,
     }
+
+
+@router.put("/profile")
+async def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Update only display_name. All other fields are ignored for self-edit."""
+    current_user.display_name = body.display_name
+    await current_user.save()
+    return {"display_name": current_user.display_name}
 
 
 @router.post("/change-password")

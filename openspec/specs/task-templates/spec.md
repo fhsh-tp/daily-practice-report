@@ -123,12 +123,20 @@ tests:
 ---
 ### Requirement: Teacher assigns template to a date
 
-Teachers SHALL be able to assign a task template to one or more specific dates. Students SHALL only see and submit the template assigned to the current date.
+Teachers SHALL assign task templates to dates using the schedule rule system (`TaskScheduleRule`) rather than single-date assignment. The assignment UI SHALL present four scheduling modes: once, range (every day), range with weekday filter, and open-ended. All modes SHALL create `TaskAssignment` records through the `expand_schedule_rule()` service function. The previous single-date `AssignTemplateRequest` API endpoint SHALL continue to function for backward compatibility.
 
-#### Scenario: Template assigned to a date
+#### Scenario: Teacher assigns template using range mode with weekday filter
 
-- **WHEN** a teacher assigns a template to a future date
-- **THEN** students in that class SHALL see that template on the assigned date and SHALL be able to submit
+- **WHEN** a teacher selects "日期區間 + 星期篩選" mode, sets start/end dates, checks weekdays [0,1,3,4], and submits
+- **THEN** `POST /classes/{class_id}/schedule-rules` is called with the rule parameters
+- **AND** `TaskAssignment` records are created for all qualifying dates in the range
+- **AND** the teacher is redirected to the templates list with a success message
+
+#### Scenario: Template assign page shows four scheduling modes
+
+- **WHEN** a teacher opens the schedule assignment page for a template
+- **THEN** the page displays a mode selector with options: 一次性、日期區間、星期篩選、開放式
+- **AND** the relevant date/weekday inputs update based on the selected mode
 
 #### Scenario: No template assigned for today
 
@@ -233,6 +241,11 @@ tests:
   - tests/test_auth.py
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
+-->
+
+<!-- @trace
+source: task-scheduling-and-checkin
+updated: 2026-03-19
 -->
 
 ---
@@ -568,4 +581,139 @@ tests:
   - tests/test_auth.py
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
+-->
+
+---
+### Requirement: Teacher template list HTML page
+
+The system SHALL serve a task template management page at `GET /pages/teacher/classes/{class_id}/templates`. The page SHALL require `MANAGE_TASKS` permission. It SHALL display all templates for the class and provide links to create new templates.
+
+#### Scenario: Teacher views template list
+
+- **WHEN** a user with `MANAGE_TASKS` permission navigates to `GET /pages/teacher/classes/{class_id}/templates`
+- **THEN** the system SHALL display all existing task templates for that class
+
+#### Scenario: Unauthorized user rejected
+
+- **WHEN** a user without `MANAGE_TASKS` permission accesses the templates list page
+- **THEN** the system SHALL return HTTP 403
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
+---
+### Requirement: Teacher template form HTML page
+
+The system SHALL serve a task template creation form at `GET /pages/teacher/classes/{class_id}/templates/new`. The page SHALL require `MANAGE_TASKS` permission. If an `error` query parameter is present, the page SHALL display it.
+
+#### Scenario: Teacher views new template form
+
+- **WHEN** a user with `MANAGE_TASKS` permission navigates to `GET /pages/teacher/classes/{class_id}/templates/new`
+- **THEN** the system SHALL display an HTML form for creating a new task template
+
+#### Scenario: Error shown after failed creation
+
+- **WHEN** `GET /pages/teacher/classes/{class_id}/templates/new?error=<message>` is requested
+- **THEN** the page SHALL display the error message
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
+---
+### Requirement: Teacher can archive a task template
+
+A teacher SHALL be able to archive a task template they manage. Archiving SHALL set `is_archived = True` on the template. An archived template SHALL remain visible in the teacher's template management list (styled differently to indicate archived status). An archived template SHALL NOT be used to fulfill `get_template_for_date()` queries — it behaves as if no template is assigned.
+
+#### Scenario: Teacher archives a template
+
+- **WHEN** a teacher clicks "封存" on a template in the templates list
+- **THEN** `PATCH /templates/{template_id}/archive` is called
+- **AND** the template's `is_archived` field is set to `True`
+- **AND** the template remains visible to the teacher with an "已封存" label
+
+#### Scenario: Archived template hidden from students
+
+- **WHEN** a student visits the submission page on a date assigned to an archived template
+- **THEN** the system behaves as if no template is assigned for that date
+- **AND** the student cannot submit a task
+
+<!-- @trace
+source: ui-polish-and-fixes
+updated: 2026-03-19
+-->
+
+---
+### Requirement: Teacher can unarchive a task template
+
+A teacher SHALL be able to restore an archived template to active status via an "取消封存" action. After unarchiving, the template SHALL once again fulfill `get_template_for_date()` queries normally.
+
+#### Scenario: Teacher unarchives a template
+
+- **WHEN** a teacher clicks "取消封存" on an archived template
+- **THEN** `PATCH /templates/{template_id}/unarchive` is called
+- **AND** the template's `is_archived` field is set to `False`
+- **AND** the template is treated as active again
+
+<!-- @trace
+source: ui-polish-and-fixes
+updated: 2026-03-19
 -->

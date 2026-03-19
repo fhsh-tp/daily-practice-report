@@ -2,57 +2,225 @@
 {% block title %}提交每日任務{% endblock %}
 
 {% block head_extra %}
-<!-- EasyMDE WYSIWYG Markdown Editor -->
-<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+{# ── Toast UI Editor CDN (replaces EasyMDE) ── #}
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css">
 {% endblock %}
 
 {% block content %}
-<h1>{{ template.name }}</h1>
-{% if template.description %}
-<p>{{ template.description }}</p>
-{% endif %}
+<div class="max-w-3xl mx-auto">
 
-<form method="post" action="/classes/{{ class_id }}/submissions" id="submit-form">
-  {% for field in template.fields %}
-  <fieldset>
-    <label>
-      {{ field.name }}{% if field.required %} <span style="color:red">*</span>{% endif %}
-    </label>
-
-    {% if field.field_type == 'text' %}
-    <input type="text" name="{{ field.name }}"
-           {% if field.required %}required{% endif %}>
-
-    {% elif field.field_type == 'markdown' %}
-    <textarea id="md-{{ loop.index0 }}" name="{{ field.name }}"
-              class="md-editor"
-              {% if field.required %}required{% endif %}></textarea>
-
-    {% elif field.field_type == 'number' %}
-    <input type="number" step="any" name="{{ field.name }}"
-           {% if field.required %}required{% endif %}>
-
-    {% elif field.field_type == 'checkbox' %}
-    <input type="checkbox" name="{{ field.name }}" value="true">
+  {# Page header #}
+  <div class="mb-6">
+    <a href="/pages/dashboard"
+       class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 mb-3">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      返回儀表板
+    </a>
+    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">{{ template.name }}</h1>
+    {% if template.description %}
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ template.description }}</p>
     {% endif %}
-  </fieldset>
-  {% endfor %}
+  </div>
 
-  <button type="submit">提交任務</button>
-</form>
+  {# Success message with points earned #}
+  {% if success %}
+  <div class="mb-5 flex items-start gap-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3">
+    <svg class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+    <div>
+      <p class="text-sm font-semibold text-green-700 dark:text-green-400">任務提交成功！</p>
+      {% if points_earned %}
+      <p class="text-sm text-green-600 dark:text-green-500 mt-0.5">獲得 {{ points_earned }} 積分</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Error message #}
+  {% if error %}
+  <div class="mb-5 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
+    <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+    </svg>
+    <p class="text-sm text-red-700 dark:text-red-400">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+    <form method="post" action="/classes/{{ class_id }}/submit" id="submit-form" class="space-y-6">
+
+      {% for field in template.fields %}
+      <div class="space-y-1.5">
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+          {{ field.name }}
+          {% if field.required %}
+          <span class="text-red-500 ml-0.5">*</span>
+          {% endif %}
+        </label>
+
+        {# ── text field ── #}
+        {% if field.field_type == 'text' %}
+        <input type="text"
+               name="{{ field.name }}"
+               {% if field.required %}required{% endif %}
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+
+        {# ── markdown field: Toast UI Editor ── #}
+        {% elif field.field_type == 'markdown' %}
+        <div class="rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
+          <div id="tui-editor-{{ loop.index0 }}" class="tui-editor-mount"></div>
+        </div>
+        {# Hidden input synced from TUI Editor before form submit #}
+        <input type="hidden"
+               id="md-hidden-{{ loop.index0 }}"
+               name="{{ field.name }}"
+               {% if field.required %}required{% endif %}>
+
+        {# ── number field ── #}
+        {% elif field.field_type == 'number' %}
+        <input type="number"
+               step="any"
+               name="{{ field.name }}"
+               {% if field.required %}required{% endif %}
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+
+        {# ── checkbox field ── #}
+        {% elif field.field_type == 'checkbox' %}
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox"
+                 name="{{ field.name }}"
+                 value="true"
+                 class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 cursor-pointer">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ field.name }}</span>
+        </label>
+
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div class="pt-2 flex items-center justify-between gap-4">
+        <a href="/pages/dashboard"
+           class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150">
+          取消
+        </a>
+        <button type="submit"
+                class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          提交任務
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
 <script>
-// Initialize EasyMDE for all markdown fields
-document.querySelectorAll('.md-editor').forEach(function(el) {
-  new EasyMDE({
-    element: el,
-    spellChecker: false,
-    autosave: { enabled: true, uniqueId: el.id },
-    toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "|", "preview", "side-by-side", "fullscreen"]
+(function () {
+  // Detect current dark mode state from <html> class
+  var isDark = document.documentElement.classList.contains('dark');
+
+  // Collect all markdown editor mount points
+  var editorMounts = document.querySelectorAll('.tui-editor-mount');
+  var editors = [];
+
+  editorMounts.forEach(function (el) {
+    var idx = el.id.replace('tui-editor-', '');
+    var hiddenInput = document.getElementById('md-hidden-' + idx);
+
+    var editor = new toastui.Editor({
+      el: el,
+      height: '360px',
+      initialEditType: 'markdown',        // ★ default: markdown source mode
+      previewStyle: 'vertical',           // right-side live preview
+      theme: isDark ? 'dark' : '',
+
+      // ── Toolbar items ──
+      // Core toolbar (always enabled):
+      toolbarItems: [
+        ['heading', 'bold', 'italic', 'strike'],
+        ['hr', 'quote'],
+        ['ul', 'ol', 'task'],
+        ['code', 'codeblock'],
+        ['scrollSync'],
+        // ── Extension area: uncomment to enable additional toolbar groups ──
+        // ['link', 'image'],
+        // ['table'],
+      ],
+    });
+
+    // Sync TUI Editor content into the hidden input on every change
+    editor.on('change', function () {
+      hiddenInput.value = editor.getMarkdown();
+    });
+
+    editors.push(editor);
   });
-});
+
+  // Before form submit: sync all markdown editors to their hidden inputs
+  var form = document.getElementById('submit-form');
+  if (form) {
+    form.addEventListener('submit', function () {
+      editors.forEach(function (editor, i) {
+        var hiddenInput = document.getElementById('md-hidden-' + i);
+        if (hiddenInput) {
+          hiddenInput.value = editor.getMarkdown();
+        }
+      });
+    });
+  }
+
+  // Re-initialize editors when dark mode is toggled
+  // (TUI Editor does not support live theme switching; destroy and recreate)
+  var observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
+      if (mutation.attributeName === 'class') {
+        var nowDark = document.documentElement.classList.contains('dark');
+        if (nowDark !== isDark) {
+          isDark = nowDark;
+          editorMounts.forEach(function (el, i) {
+            var currentContent = editors[i] ? editors[i].getMarkdown() : '';
+            if (editors[i]) {
+              editors[i].destroy();
+            }
+            var hiddenInput = document.getElementById('md-hidden-' + i);
+            editors[i] = new toastui.Editor({
+              el: el,
+              height: '360px',
+              initialValue: currentContent,
+              initialEditType: 'markdown',
+              previewStyle: 'vertical',
+              theme: isDark ? 'dark' : '',
+              toolbarItems: [
+                ['heading', 'bold', 'italic', 'strike'],
+                ['hr', 'quote'],
+                ['ul', 'ol', 'task'],
+                ['code', 'codeblock'],
+                ['scrollSync'],
+                // ── Extension area ──
+                // ['link', 'image'],
+                // ['table'],
+              ],
+            });
+            editors[i].on('change', function () {
+              if (hiddenInput) {
+                hiddenInput.value = editors[i].getMarkdown();
+              }
+            });
+          });
+        }
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+})();
 </script>
 {% endblock %}

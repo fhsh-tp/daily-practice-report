@@ -574,3 +574,50 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Community feed HTML page
+
+The system SHALL serve a community feed page at `GET /pages/classes/{class_id}/feed`. The page SHALL require authentication and class membership. It SHALL display all posts in reverse chronological order with reactions.
+
+#### Scenario: Member views class feed page
+
+- **WHEN** an authenticated class member navigates to `GET /pages/classes/{class_id}/feed`
+- **THEN** the system SHALL render an HTML page displaying all feed posts for that class in reverse chronological order
+
+#### Scenario: Non-member rejected
+
+- **WHEN** a user who is not a member of the class accesses the feed page
+- **THEN** the system SHALL return HTTP 403
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->

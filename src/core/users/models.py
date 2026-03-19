@@ -1,19 +1,34 @@
-"""User Beanie Document."""
+"""User Beanie Document and related models."""
 from datetime import datetime, timezone
-from typing import Literal
+from enum import Enum
 
 from beanie import Document
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
-UserRole = Literal["student", "teacher"]
+class IdentityTag(str, Enum):
+    """Identity classification tags — separate from permission flags."""
+    TEACHER = "teacher"
+    STUDENT = "student"
+    STAFF   = "staff"
+
+
+class StudentProfile(BaseModel):
+    """Embedded profile for students only."""
+    class_name: str = ""    # Administrative class (e.g. "302班")
+    seat_number: int = 0    # Seat number within the class
 
 
 class User(Document):
     username: str
     hashed_password: str
     display_name: str
-    role: UserRole
+    name: str = ""                                      # Real name (管理者才能改)
+    email: str = ""
+    permissions: int = 0
+    identity_tags: list[IdentityTag] = Field(default_factory=list)
+    student_profile: StudentProfile | None = None
+    tags: list[str] = Field(default_factory=list)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

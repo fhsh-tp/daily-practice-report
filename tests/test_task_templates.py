@@ -140,3 +140,68 @@ async def test_delete_template_no_submissions(db, teacher):
     from tasks.templates.models import TaskTemplate
     found = await TaskTemplate.get(tmpl.id)
     assert found is None
+
+
+# --- Archive / Unarchive (task 4.6) ---
+
+async def test_archive_template_hidden_from_get_template_for_date(db, teacher):
+    """After archive_template(), get_template_for_date() shall not return the template."""
+    from datetime import date
+    from tasks.templates.service import (
+        archive_template,
+        assign_template_to_date,
+        create_template,
+        get_template_for_date,
+    )
+
+    tmpl = await create_template(
+        name="Archived",
+        description="",
+        class_id="cls_arc",
+        fields=[{"name": "f", "field_type": "text", "required": True}],
+        owner=teacher,
+    )
+    target = date(2026, 3, 19)
+    await assign_template_to_date(str(tmpl.id), "cls_arc", target)
+
+    # Before archiving: should be found
+    found = await get_template_for_date("cls_arc", target)
+    assert found is not None
+
+    # Archive
+    await archive_template(str(tmpl.id))
+
+    # After archiving: should NOT be found
+    found_after = await get_template_for_date("cls_arc", target)
+    assert found_after is None
+
+
+async def test_unarchive_template_restores_visibility(db, teacher):
+    """After unarchive_template(), get_template_for_date() returns the template again."""
+    from datetime import date
+    from tasks.templates.service import (
+        archive_template,
+        assign_template_to_date,
+        create_template,
+        get_template_for_date,
+        unarchive_template,
+    )
+
+    tmpl = await create_template(
+        name="Unarchived",
+        description="",
+        class_id="cls_unarc",
+        fields=[{"name": "f", "field_type": "text", "required": True}],
+        owner=teacher,
+    )
+    target = date(2026, 3, 19)
+    await assign_template_to_date(str(tmpl.id), "cls_unarc", target)
+    await archive_template(str(tmpl.id))
+
+    # Unarchive
+    await unarchive_template(str(tmpl.id))
+
+    # Should be visible again
+    found = await get_template_for_date("cls_unarc", target)
+    assert found is not None
+    assert str(found.id) == str(tmpl.id)

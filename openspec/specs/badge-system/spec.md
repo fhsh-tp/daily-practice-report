@@ -563,3 +563,45 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Student badges HTML page
+
+The system SHALL serve a badge display page at `GET /pages/students/me/badges`. The page SHALL require authentication. It SHALL display all badges earned by the authenticated student.
+
+#### Scenario: Student views own badges page
+
+- **WHEN** an authenticated student navigates to `GET /pages/students/me/badges`
+- **THEN** the system SHALL render an HTML page displaying all badge awards for that student with badge name, icon, and award date
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->

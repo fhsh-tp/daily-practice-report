@@ -1,0 +1,10 @@
+"""SystemConfig — singleton Beanie Document for system-level settings."""
+from beanie import Document
+
+
+class SystemConfig(Document):
+    site_name: str
+    admin_email: str
+
+    class Settings:
+        name = "system_config"

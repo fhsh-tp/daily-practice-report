@@ -19,7 +19,8 @@ async def db():
 async def teacher(db):
     from core.users.models import User
     from core.auth.password import hash_password
-    u = User(username="teach", hashed_password=hash_password("pw"), display_name="Teacher", role="teacher")
+    from core.auth.permissions import TEACHER
+    u = User(username="teach", hashed_password=hash_password("pw"), display_name="Teacher", permissions=int(TEACHER))
     await u.insert()
     return u
 
@@ -28,7 +29,8 @@ async def teacher(db):
 async def student(db):
     from core.users.models import User
     from core.auth.password import hash_password
-    u = User(username="stu", hashed_password=hash_password("pw"), display_name="Student", role="student")
+    from core.auth.permissions import STUDENT
+    u = User(username="stu", hashed_password=hash_password("pw"), display_name="Student", permissions=int(STUDENT))
     await u.insert()
     return u
 

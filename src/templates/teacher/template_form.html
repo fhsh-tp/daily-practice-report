@@ -2,84 +2,240 @@
 {% block title %}{% if template %}編輯模板{% else %}新增模板{% endif %}{% endblock %}
 
 {% block content %}
-<h1>{% if template %}編輯任務模板{% else %}新增任務模板{% endif %}</h1>
+<div class="max-w-2xl mx-auto">
+  <div class="mb-6">
+    <a href="/pages/teacher/classes/{{ class_id }}/templates"
+       class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 mb-3">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      返回模板列表
+    </a>
+    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">
+      {% if template %}編輯任務模板{% else %}新增任務模板{% endif %}
+    </h1>
+  </div>
 
-<form method="post" id="template-form">
-  <label>
-    模板名稱
-    <input type="text" name="name" value="{{ template.name if template else '' }}" required>
-  </label>
-  <label>
-    描述
-    <textarea name="description">{{ template.description if template else '' }}</textarea>
-  </label>
+  <form id="template-form" class="space-y-6" onsubmit="submitTemplate(event)">
 
-  <h3>欄位定義</h3>
-  <div id="fields-container">
-    {% if template %}
-      {% for field in template.fields %}
-      <fieldset id="field-{{ loop.index0 }}">
-        <legend>欄位 {{ loop.index }}</legend>
-        <label>欄位名稱 <input type="text" name="fields[{{ loop.index0 }}][name]" value="{{ field.name }}" required></label>
-        <label>欄位類型
-          <select name="fields[{{ loop.index0 }}][field_type]">
-            <option value="text" {% if field.field_type == 'text' %}selected{% endif %}>文字</option>
-            <option value="markdown" {% if field.field_type == 'markdown' %}selected{% endif %}>Markdown</option>
-            <option value="number" {% if field.field_type == 'number' %}selected{% endif %}>數字</option>
-            <option value="checkbox" {% if field.field_type == 'checkbox' %}selected{% endif %}>核取方塊</option>
-          </select>
-        </label>
-        <label><input type="checkbox" name="fields[{{ loop.index0 }}][required]" {% if field.required %}checked{% endif %}> 必填</label>
-        <button type="button" onclick="removeField({{ loop.index0 }})">移除</button>
-      </fieldset>
-      {% endfor %}
-    {% else %}
-      <fieldset id="field-0">
-        <legend>欄位 1</legend>
-        <label>欄位名稱 <input type="text" name="fields[0][name]" required></label>
-        <label>欄位類型
-          <select name="fields[0][field_type]">
+    {# Basic info card #}
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+      <h2 class="font-heading font-semibold text-base text-gray-800 dark:text-gray-200">基本資訊</h2>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">模板名稱 <span class="text-red-500">*</span></label>
+        <input type="text" name="name" value="{{ template.name if template else '' }}" required
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">描述</label>
+        <textarea name="description" rows="3"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150 resize-none">{{ template.description if template else '' }}</textarea>
+      </div>
+    </div>
+
+    {# Fields card #}
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-heading font-semibold text-base text-gray-800 dark:text-gray-200">欄位定義</h2>
+        <button type="button" onclick="addField()"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-200 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-900/50 border border-brand-200 dark:border-brand-800 px-2.5 py-1.5 rounded-lg transition-colors duration-150 cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          新增欄位
+        </button>
+      </div>
+
+      <div id="fields-container" class="space-y-3">
+        {% if template %}
+          {% for field in template.fields %}
+          <div id="field-{{ loop.index0 }}"
+               class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex-1 grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位名稱</label>
+                <input type="text" name="fields[{{ loop.index0 }}][name]" value="{{ field.name }}" required
+                       class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位類型</label>
+                <select name="fields[{{ loop.index0 }}][field_type]"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
+                  <option value="text" {% if field.field_type == 'text' %}selected{% endif %}>文字</option>
+                  <option value="markdown" {% if field.field_type == 'markdown' %}selected{% endif %}>Markdown</option>
+                  <option value="number" {% if field.field_type == 'number' %}selected{% endif %}>數字</option>
+                  <option value="checkbox" {% if field.field_type == 'checkbox' %}selected{% endif %}>核取方塊</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="fields[{{ loop.index0 }}][required]" {% if field.required %}checked{% endif %}
+                         class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">必填</span>
+                </label>
+              </div>
+            </div>
+            <button type="button" onclick="removeField({{ loop.index0 }})"
+                    class="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-150 cursor-pointer p-1 shrink-0 mt-0.5">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div id="field-0"
+               class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="flex-1 grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位名稱</label>
+                <input type="text" name="fields[0][name]" required
+                       class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位類型</label>
+                <select name="fields[0][field_type]"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
+                  <option value="text">文字</option>
+                  <option value="markdown">Markdown</option>
+                  <option value="number">數字</option>
+                  <option value="checkbox">核取方塊</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="fields[0][required]"
+                         class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">必填</span>
+                </label>
+              </div>
+            </div>
+            <div class="w-6 shrink-0"></div>{# spacer to align with remove button #}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Actions #}
+    <div class="flex items-center justify-between gap-4">
+      <a href="/pages/teacher/classes/{{ class_id }}/templates"
+         class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150">
+        取消
+      </a>
+      <button type="submit"
+              class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        儲存模板
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CLASS_ID = '{{ class_id }}';
+const TEMPLATE_ID = '{{ template.id if template else "" }}';
+let fieldCount = {{ (template.fields | length) if template else 1 }};
+
+async function submitTemplate(e) {
+  e.preventDefault();
+  const name = document.querySelector('[name="name"]').value.trim();
+  const description = document.querySelector('[name="description"]').value.trim();
+  if (!name) { document.querySelector('[name="name"]').focus(); return; }
+
+  // Collect all visible field rows
+  const rows = document.querySelectorAll('#fields-container > div[id^="field-"]');
+  const fields = [];
+  rows.forEach(row => {
+    const nameInput = row.querySelector('input[type="text"]');
+    const typeSelect = row.querySelector('select');
+    const requiredBox = row.querySelector('input[type="checkbox"]');
+    if (nameInput && nameInput.value.trim()) {
+      fields.push({
+        name: nameInput.value.trim(),
+        field_type: typeSelect ? typeSelect.value : 'text',
+        required: requiredBox ? requiredBox.checked : false,
+      });
+    }
+  });
+  if (fields.length === 0) { Modal.alert('請至少新增一個欄位'); return; }
+
+  const btn = document.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  let url, method;
+  if (TEMPLATE_ID) {
+    url = `/templates/${TEMPLATE_ID}`;
+    method = 'PATCH';
+  } else {
+    url = `/classes/${CLASS_ID}/templates`;
+    method = 'POST';
+  }
+
+  const resp = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description, fields }),
+  });
+
+  if (resp.ok) {
+    location.href = `/pages/teacher/classes/${CLASS_ID}/templates`;
+  } else {
+    btn.disabled = false;
+    const data = await resp.json().catch(() => ({}));
+    Modal.alert(data.detail || '儲存失敗，請稍後再試');
+  }
+}
+
+function fieldRowHTML(idx) {
+  return `
+    <div id="field-${idx}"
+         class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="flex-1 grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位名稱</label>
+          <input type="text" name="fields[${idx}][name]" required
+                 class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">欄位類型</label>
+          <select name="fields[${idx}][field_type]"
+                  class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
             <option value="text">文字</option>
             <option value="markdown">Markdown</option>
             <option value="number">數字</option>
             <option value="checkbox">核取方塊</option>
           </select>
-        </label>
-        <label><input type="checkbox" name="fields[0][required]"> 必填</label>
-      </fieldset>
-    {% endif %}
-  </div>
-
-  <button type="button" onclick="addField()">+ 新增欄位</button>
-  <hr>
-  <button type="submit">儲存模板</button>
-  <a href="/pages/teacher/classes/{{ class_id }}/templates" role="button" class="secondary">取消</a>
-</form>
-{% endblock %}
-
-{% block scripts %}
-<script>
-let fieldCount = {{ (template.fields | length) if template else 1 }};
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="fields[${idx}][required]"
+                   class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 cursor-pointer">
+            <span class="text-sm text-gray-700 dark:text-gray-300">必填</span>
+          </label>
+        </div>
+      </div>
+      <button type="button" onclick="removeField(${idx})"
+              class="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-150 cursor-pointer p-1 shrink-0 mt-0.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  `;
+}
 
 function addField() {
   const container = document.getElementById('fields-container');
-  const div = document.createElement('fieldset');
-  div.id = `field-${fieldCount}`;
-  div.innerHTML = `
-    <legend>欄位 ${fieldCount + 1}</legend>
-    <label>欄位名稱 <input type="text" name="fields[${fieldCount}][name]" required></label>
-    <label>欄位類型
-      <select name="fields[${fieldCount}][field_type]">
-        <option value="text">文字</option>
-        <option value="markdown">Markdown</option>
-        <option value="number">數字</option>
-        <option value="checkbox">核取方塊</option>
-      </select>
-    </label>
-    <label><input type="checkbox" name="fields[${fieldCount}][required]"> 必填</label>
-    <button type="button" onclick="removeField(${fieldCount})">移除</button>
-  `;
-  container.appendChild(div);
+  const div = document.createElement('div');
+  div.innerHTML = fieldRowHTML(fieldCount);
+  container.appendChild(div.firstElementChild);
   fieldCount++;
 }
 

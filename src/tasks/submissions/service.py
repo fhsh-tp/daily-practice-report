@@ -49,6 +49,23 @@ async def submit_task(
     Raises:
         ValueError: If already submitted or required fields are missing.
     """
+    # Check per-student submission limit from associated schedule rule
+    from tasks.templates.models import TaskScheduleRule
+    rule = await TaskScheduleRule.find_one(
+        TaskScheduleRule.template_id == str(template.id),
+        TaskScheduleRule.class_id == class_id,
+    )
+    if rule and rule.max_submissions_per_student > 0:
+        existing_count = await TaskSubmission.find(
+            TaskSubmission.template_id == str(template.id),
+            TaskSubmission.student_id == str(student.id),
+            TaskSubmission.class_id == class_id,
+        ).count()
+        if existing_count >= rule.max_submissions_per_student:
+            raise ValueError(
+                f"Submission limit reached: max {rule.max_submissions_per_student} per student"
+            )
+
     # Check for duplicate
     existing = await TaskSubmission.find_one(
         TaskSubmission.template_id == str(template.id),

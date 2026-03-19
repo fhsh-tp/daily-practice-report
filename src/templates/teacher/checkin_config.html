@@ -1,0 +1,160 @@
+{% extends "shared/base.html" %}
+{% block title %}簽到設定 — 班級 {{ class_id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto space-y-6">
+
+  <div class="mb-2">
+    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">簽到設定</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">設定班級的簽到開放星期與時間窗口。</p>
+  </div>
+
+  {% if success %}
+  <div class="px-4 py-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
+    {{ success }}
+  </div>
+  {% endif %}
+
+  {# Global config form #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-5">
+    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">每週排程</h2>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">開放簽到的星期</label>
+      <div class="flex flex-wrap gap-3">
+        {% for label, val in [('一',0),('二',1),('三',2),('四',3),('五',4),('六',5),('日',6)] %}
+        <label class="flex items-center gap-1.5 cursor-pointer select-none">
+          <input type="checkbox" class="weekday-config-cb rounded border-gray-300 dark:border-gray-600 text-brand-600"
+                 value="{{ val }}"
+                 {% if val in config.active_weekdays %}checked{% endif %}>
+          <span class="text-sm text-gray-700 dark:text-gray-300">週{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">開始時間（UTC）</label>
+        <input type="time" id="window-start" value="{{ config.window_start or '' }}"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">結束時間（UTC）</label>
+        <input type="time" id="window-end" value="{{ config.window_end or '' }}"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+      </div>
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500">留空表示全天開放（不限時間窗口）。</p>
+
+    <div id="config-msg" class="hidden px-4 py-3 rounded-lg text-sm"></div>
+
+    <div class="flex justify-end">
+      <button onclick="saveConfig()"
+              class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+        儲存設定
+      </button>
+    </div>
+  </div>
+
+  {# Single-day override form #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">單日 Override</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400">針對特定日期覆蓋上方的週期設定。</p>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">日期 <span class="text-red-500">*</span></label>
+      <input type="date" id="override-date"
+             class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+    </div>
+
+    <div class="flex items-center gap-3">
+      <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">此日開放簽到</label>
+      <label class="flex items-center gap-1.5 cursor-pointer">
+        <input type="radio" name="override-active" value="true" checked class="text-brand-600"> 是
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer">
+        <input type="radio" name="override-active" value="false" class="text-brand-600"> 否（停用）
+      </label>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">自訂開始時間（選填）</label>
+        <input type="time" id="override-start"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+      </div>
+      <div>
+        <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">自訂結束時間（選填）</label>
+        <input type="time" id="override-end"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+      </div>
+    </div>
+
+    <div id="override-msg" class="hidden px-4 py-3 rounded-lg text-sm"></div>
+
+    <div class="flex justify-end">
+      <button onclick="saveOverride()"
+              class="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+        新增 Override
+      </button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CLASS_ID = '{{ class_id }}';
+
+async function saveConfig() {
+  const weekdays = Array.from(document.querySelectorAll('.weekday-config-cb:checked'))
+    .map(cb => parseInt(cb.value));
+  const ws = document.getElementById('window-start').value || null;
+  const we = document.getElementById('window-end').value || null;
+
+  const resp = await fetch(`/classes/${CLASS_ID}/checkin-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active_weekdays: weekdays, window_start: ws, window_end: we }),
+  });
+
+  const msg = document.getElementById('config-msg');
+  msg.classList.remove('hidden');
+  if (resp.ok) {
+    msg.className = 'px-4 py-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300';
+    msg.textContent = '設定已儲存';
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    msg.className = 'px-4 py-3 rounded-lg text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300';
+    msg.textContent = data.detail || '儲存失敗';
+  }
+}
+
+async function saveOverride() {
+  const d = document.getElementById('override-date').value;
+  if (!d) { document.getElementById('override-date').focus(); return; }
+  const active = document.querySelector('input[name="override-active"]:checked').value === 'true';
+  const ws = document.getElementById('override-start').value || null;
+  const we = document.getElementById('override-end').value || null;
+
+  const resp = await fetch(`/classes/${CLASS_ID}/checkin-overrides`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: d, active, window_start: ws, window_end: we }),
+  });
+
+  const msg = document.getElementById('override-msg');
+  msg.classList.remove('hidden');
+  if (resp.ok) {
+    msg.className = 'px-4 py-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300';
+    msg.textContent = `已設定 ${d} 的 Override`;
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    msg.className = 'px-4 py-3 rounded-lg text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300';
+    msg.textContent = data.detail || '設定失敗';
+  }
+}
+</script>
+{% endblock %}

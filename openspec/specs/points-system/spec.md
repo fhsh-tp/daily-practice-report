@@ -563,3 +563,77 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Teacher points management HTML page
+
+The system SHALL serve a points management page at `GET /pages/classes/{class_id}/points`. The page SHALL require `MANAGE_TASKS` permission. It SHALL display all students' current point balances and the class point configuration.
+
+#### Scenario: Teacher views class points page
+
+- **WHEN** a user with `MANAGE_TASKS` permission navigates to `GET /pages/classes/{class_id}/points`
+- **THEN** the system SHALL render an HTML page showing all students' point balances and the current checkin/submission point config for that class
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->
+
+---
+### Requirement: Student sees point balance on dashboard
+
+The dashboard page SHALL display the student's current total point balance. The value SHALL be computed server-side from all `PointTransaction` records for that student and passed into the template context as `stats.total_points`. If no transactions exist, the value SHALL be `0`.
+
+#### Scenario: Dashboard shows correct total points
+
+- **WHEN** a student views the dashboard
+- **THEN** the "總積分" stat card displays their actual cumulative point balance
+- **AND** the value reflects all completed check-ins and task submissions
+
+<!-- @trace
+source: ui-polish-and-fixes
+updated: 2026-03-19
+-->
+
+---
+### Requirement: Submission confirmation displays points earned
+
+After a student successfully submits a task, the system SHALL display how many points were awarded for that submission. The points earned SHALL be shown in the success state of the submission page.
+
+#### Scenario: Points shown after task submission
+
+- **WHEN** a student submits a task and receives HTTP 201
+- **THEN** the UI displays a message indicating points earned (e.g., "獲得 10 積分")
+- **AND** the points value reflects the class `submission_points` configuration
+
+<!-- @trace
+source: ui-polish-and-fixes
+updated: 2026-03-19
+-->

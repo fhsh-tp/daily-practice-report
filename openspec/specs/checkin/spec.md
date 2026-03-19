@@ -463,3 +463,88 @@ tests:
   - tests/test_badges.py
   - scripts/migrations/test_example_migration.py
 -->
+
+---
+### Requirement: Teacher configures check-in schedule via web UI
+
+Teachers with `MANAGE_OWN_CLASS` or `MANAGE_ALL_CLASSES` permission SHALL be able to view and update their class's check-in schedule through a dedicated web page at `/pages/teacher/classes/{class_id}/checkin-config`. The page SHALL display the current `CheckinConfig` (active weekdays and time window) and allow the teacher to update it by submitting a form that calls `POST /classes/{class_id}/checkin-config`.
+
+#### Scenario: Teacher views current check-in configuration
+
+- **WHEN** a teacher navigates to `/pages/teacher/classes/{class_id}/checkin-config`
+- **THEN** the page displays the currently configured active weekdays
+- **AND** the page displays the currently configured window start and end times (if set)
+- **AND** if no config exists, sensible defaults are shown (all weekdays, no time restriction)
+
+#### Scenario: Teacher updates active weekdays
+
+- **WHEN** a teacher selects weekdays and submits the configuration form
+- **THEN** `POST /classes/{class_id}/checkin-config` is called with the selected weekdays
+- **AND** the page reloads with a success message confirming the update
+
+### Requirement: Teacher sets a single-day check-in override via web UI
+
+Teachers SHALL be able to add a single-day override (activate or deactivate check-in for a specific date, with optional custom time window) through the check-in config page without leaving the browser.
+
+#### Scenario: Teacher disables check-in for a specific date
+
+- **WHEN** a teacher enters a date, sets `active: false`, and submits the override form on the config page
+- **THEN** `POST /classes/{class_id}/checkin-overrides` is called with the date and `active: false`
+- **AND** students cannot check in on that date even if the weekday is normally active
+
+<!-- @trace
+source: task-scheduling-and-checkin
+updated: 2026-03-19
+-->
+
+---
+### Requirement: Student performs daily check-in via browser form
+
+The system SHALL accept check-in via `POST /classes/{class_id}/checkin` from browser form submissions. The endpoint SHALL redirect after processing (PRG pattern). On success or expected states (already checked in, window closed), it SHALL redirect to `GET /pages/dashboard`. On unexpected error, it SHALL redirect to `GET /pages/dashboard?error=<message>`.
+
+#### Scenario: Successful check-in redirects to dashboard
+
+- **WHEN** a student submits the check-in form and the check-in window is open
+- **THEN** the system SHALL record the check-in and redirect to `GET /pages/dashboard` (HTTP 302)
+
+#### Scenario: Already checked in redirects to dashboard
+
+- **WHEN** a student who already checked in today submits the check-in form
+- **THEN** the system SHALL redirect to `GET /pages/dashboard` (HTTP 302) without creating a duplicate record
+
+#### Scenario: Check-in window closed redirects with error
+
+- **WHEN** a student submits the check-in form outside the check-in window
+- **THEN** the system SHALL redirect to `GET /pages/dashboard?error=簽到時間已關閉` (HTTP 302)
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+-->
+
+<!-- @trace
+source: ui-pages-fastapi-webpage
+updated: 2026-03-18
+code:
+  - src/gamification/points/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/dashboard.html
+  - src/templates/login.html
+  - src/core/auth/permissions.py
+  - src/main.py
+  - src/pages/deps.py
+  - src/gamification/badges/router.py
+  - src/templates/shared/base.html
+  - src/tasks/templates/router.py
+  - src/shared/webpage.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/router.py
+  - src/core/auth/router.py
+  - src/core/system/router.py
+  - src/pages/__init__.py
+  - src/templates/student/submit_task.html
+  - src/pages/router.py
+  - src/community/feed/router.py
+tests:
+  - tests/test_pages.py
+-->

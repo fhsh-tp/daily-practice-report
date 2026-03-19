@@ -1,19 +1,14 @@
 """Leaderboard router."""
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
 
-from core.auth.deps import get_current_user, require_teacher
+from core.auth.deps import get_current_user
+from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
+from shared.webpage import webpage
 
 router = APIRouter(tags=["leaderboard"])
-
-_templates = Jinja2Templates(
-    directory=str(Path(__file__).parent.parent.parent.parent / "templates")
-)
 
 
 async def _build_class_leaderboard(class_id: str) -> list[dict]:
@@ -54,7 +49,7 @@ async def class_leaderboard(
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    if user.role == "student" and not cls.leaderboard_enabled:
+    if not (user.permissions & MANAGE_CLASS) and not cls.leaderboard_enabled:
         return {"visible": False, "message": "Leaderboard is not enabled for this class"}
 
     return {"visible": True, "leaderboard": await _build_class_leaderboard(class_id)}
@@ -87,7 +82,8 @@ async def cross_class_leaderboard(user: User = Depends(get_current_user)):
     return {"leaderboard": ranked}
 
 
-@router.get("/pages/classes/{class_id}/leaderboard")
+@router.get("/pages/classes/{class_id}/leaderboard", name="leaderboard_page")
+@webpage.page("community/leaderboard.html")
 async def leaderboard_page(
     request: Request,
     class_id: str,
@@ -97,20 +93,18 @@ async def leaderboard_page(
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    visible = user.role == "teacher" or cls.leaderboard_enabled
+    visible = bool(user.permissions & MANAGE_CLASS) or cls.leaderboard_enabled
     entries = await _build_class_leaderboard(class_id) if visible else []
 
     from gamification.badges.models import BadgeAward
-    # Attach badge count per student
     for entry in entries:
         count = await BadgeAward.find(BadgeAward.student_id == entry["student_id"]).count()
         entry["badge_count"] = count
 
-    return _templates.TemplateResponse("community/leaderboard.html", {
-        "request": request,
+    return {
         "current_user": user,
         "class_id": class_id,
         "class_name": cls.name,
         "visible": visible,
         "leaderboard": entries,
-    })
+    }
