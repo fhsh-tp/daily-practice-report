@@ -107,9 +107,13 @@ async def dashboard_page(
             "today_template": today_template,
         })
 
+    from gamification.points.service import get_balance
+    total_points = await get_balance(str(current_user.id))
+
     return {
         "current_user": current_user,
         "classes": classes,
+        "stats": {"total_points": total_points},
         "can_manage_class": can_manage_class,
         "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),

@@ -93,11 +93,36 @@ async def get_template_for_date(
     class_id: str,
     target_date: date,
 ) -> TaskTemplate | None:
-    """Return the template assigned to a class for the given date, or None."""
+    """Return the active (non-archived) template assigned to a class for the given date, or None."""
     assignment = await TaskAssignment.find_one(
         TaskAssignment.class_id == class_id,
         TaskAssignment.date == target_date,
     )
     if assignment is None:
         return None
-    return await TaskTemplate.get(assignment.template_id)
+    tmpl = await TaskTemplate.get(assignment.template_id)
+    if tmpl is None or tmpl.is_archived:
+        return None
+    return tmpl
+
+
+async def archive_template(template_id: str) -> TaskTemplate:
+    """Mark a template as archived (soft-hide from students)."""
+    tmpl = await TaskTemplate.get(template_id)
+    if tmpl is None:
+        raise ValueError("Template not found")
+    tmpl.is_archived = True
+    tmpl.updated_at = datetime.now(timezone.utc)
+    await tmpl.save()
+    return tmpl
+
+
+async def unarchive_template(template_id: str) -> TaskTemplate:
+    """Restore an archived template to active status."""
+    tmpl = await TaskTemplate.get(template_id)
+    if tmpl is None:
+        raise ValueError("Template not found")
+    tmpl.is_archived = False
+    tmpl.updated_at = datetime.now(timezone.utc)
+    await tmpl.save()
+    return tmpl

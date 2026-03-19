@@ -80,7 +80,12 @@ async def submit_task_endpoint(
     from gamification.badges.service import evaluate_triggers_for_event
     await evaluate_triggers_for_event(str(user.id), event, class_id)
 
-    return {"id": str(submission.id), "date": str(submission.date)}
+    # Compute points earned in this submission
+    from gamification.points.models import ClassPointConfig
+    config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
+    points_earned = config.submission_points if config else 0
+
+    return {"id": str(submission.id), "date": str(submission.date), "points_earned": points_earned}
 
 
 @router.get("/students/me/submissions")
@@ -121,14 +126,16 @@ async def submit_task_page(
     request: Request,
     class_id: str,
     error: str | None = None,
+    success: int | None = None,
+    points: int | None = None,
     current_user: User = Depends(get_page_user),
 ):
     from tasks.templates.service import get_template_for_date
 
     today_template = await get_template_for_date(class_id, date.today())
     if today_template is None:
-        return {"current_user": current_user, "class_id": class_id, "template": None, "error": "今日無任務模板"}
-    return {"current_user": current_user, "class_id": class_id, "template": today_template, "error": error}
+        return {"current_user": current_user, "class_id": class_id, "template": None, "error": "今日無任務模板", "success": None, "points_earned": None}
+    return {"current_user": current_user, "class_id": class_id, "template": today_template, "error": error, "success": bool(success), "points_earned": points}
 
 
 @router.post("/classes/{class_id}/submit")
@@ -186,4 +193,11 @@ async def submit_task_form(
     from gamification.badges.service import evaluate_triggers_for_event
     await evaluate_triggers_for_event(str(current_user.id), event, class_id)
 
-    return str(request.url_for("dashboard_page"))
+    from gamification.points.models import ClassPointConfig
+    config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
+    points_earned = config.submission_points if config else 0
+
+    success_url = request.url_for("submit_task_page", class_id=class_id).include_query_params(
+        success=1, points=points_earned
+    )
+    return (str(success_url), 302)

@@ -90,7 +90,7 @@
       </a>
 
       {% if current_user and not can_manage_class and not can_manage_tasks and not can_manage_users and not is_sys_admin %}
-      <a href="/pages/student/badges"
+      <a href="/pages/students/me/badges"
          data-nav="badges"
          class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150">
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
@@ -230,7 +230,7 @@
             儀表板
           </a>
           {% if current_user and not can_manage_class and not can_manage_tasks and not can_manage_users and not is_sys_admin %}
-          <a href="/pages/student/badges"
+          <a href="/pages/students/me/badges"
              data-nav="badges"
              class="nav-item px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150">
             我的徽章
@@ -321,7 +321,7 @@
   </a>
 
   {% if not can_manage_class and not can_manage_tasks and not can_manage_users and not is_sys_admin %}
-  <a href="/pages/student/badges"
+  <a href="/pages/students/me/badges"
      data-nav="badges"
      class="nav-item flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 min-h-[56px]">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
@@ -407,7 +407,7 @@
     var navKey = '';
     if (path === '/pages/dashboard' || path === '/') {
       navKey = 'dashboard';
-    } else if (path.indexOf('/pages/student/badges') === 0) {
+    } else if (path.indexOf('/pages/students/me/badges') === 0) {
       navKey = 'badges';
     } else if (path.indexOf('/templates') > -1) {
       navKey = 'templates';
@@ -421,6 +421,64 @@
       });
     }
   })();
+</script>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   Global Modal component — replaces native alert() / confirm() dialogs
+   Usage:
+     Modal.confirm("message", onConfirm, onCancel)
+     Modal.alert("message", onClose)
+   ═══════════════════════════════════════════════════════════════════════════ #}
+<div id="modal-overlay"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 w-full max-w-sm">
+    <p id="modal-message" class="text-sm text-gray-800 dark:text-gray-200 mb-5 leading-relaxed"></p>
+    <div class="flex gap-3 justify-end">
+      <button id="modal-cancel-btn"
+              class="hidden px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+        取消
+      </button>
+      <button id="modal-confirm-btn"
+              class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg cursor-pointer">
+        確認
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var overlay = document.getElementById('modal-overlay');
+  var message = document.getElementById('modal-message');
+  var confirmBtn = document.getElementById('modal-confirm-btn');
+  var cancelBtn = document.getElementById('modal-cancel-btn');
+
+  function _open(msg, onConfirm, onCancel, showCancel) {
+    message.textContent = msg;
+    cancelBtn.classList.toggle('hidden', !showCancel);
+
+    function cleanup() {
+      overlay.classList.add('hidden');
+      overlay.removeEventListener('click', backdropHandler);
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+    }
+
+    confirmBtn.onclick = function () { cleanup(); if (onConfirm) onConfirm(); };
+    cancelBtn.onclick = function () { cleanup(); if (onCancel) onCancel(); };
+
+    function backdropHandler(e) {
+      if (e.target === overlay) { cleanup(); if (onCancel) onCancel(); }
+    }
+    overlay.addEventListener('click', backdropHandler);
+    overlay.classList.remove('hidden');
+  }
+
+  window.Modal = {
+    confirm: function (msg, onConfirm, onCancel) { _open(msg, onConfirm, onCancel, true); },
+    alert: function (msg, onClose) { _open(msg, onClose, null, false); },
+  };
+})();
 </script>
 
 {% block scripts %}{% endblock %}

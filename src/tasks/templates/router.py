@@ -10,10 +10,12 @@ from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from tasks.templates.service import (
+    archive_template,
     assign_template_to_date,
     create_template,
     delete_template,
     get_template_for_date,
+    unarchive_template,
     update_template,
 )
 
@@ -110,6 +112,30 @@ async def delete_template_endpoint(
         await delete_template(template_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.patch("/templates/{template_id}/archive")
+async def archive_template_endpoint(
+    template_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    try:
+        tmpl = await archive_template(template_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return {"id": str(tmpl.id), "is_archived": tmpl.is_archived}
+
+
+@router.patch("/templates/{template_id}/unarchive")
+async def unarchive_template_endpoint(
+    template_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    try:
+        tmpl = await unarchive_template(template_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return {"id": str(tmpl.id), "is_archived": tmpl.is_archived}
 
 
 from fastapi import Request

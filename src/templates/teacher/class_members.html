@@ -215,36 +215,39 @@ function showToast(msg, success) {
 async function toggleArchive() {
   const isArchived = {{ 'true' if is_archived else 'false' }};
   const action = isArchived ? '取消封存' : '封存';
-  if (!confirm(`確定要${action}此班級嗎？`)) return;
-  const endpoint = isArchived ? 'unarchive' : 'archive';
-  const resp = await fetch(`/classes/${CLASS_ID}/${endpoint}`, { method: 'PATCH' });
-  if (resp.ok) {
-    location.reload();
-  } else {
-    alert(`${action}失敗`);
-  }
+  Modal.confirm(`確定要${action}此班級嗎？`, async function () {
+    const endpoint = isArchived ? 'unarchive' : 'archive';
+    const resp = await fetch(`/classes/${CLASS_ID}/${endpoint}`, { method: 'PATCH' });
+    if (resp.ok) {
+      location.reload();
+    } else {
+      Modal.alert(`${action}失敗`);
+    }
+  });
 }
 
 async function regenInviteCode() {
-  if (!confirm('確定要重新產生邀請碼嗎？舊邀請碼將立即失效。')) return;
-  const resp = await fetch(`/classes/${CLASS_ID}/invite-code/regenerate`, { method: 'POST' });
-  if (resp.ok) {
-    const data = await resp.json();
-    document.getElementById('invite-code').textContent = data.invite_code;
-  } else {
-    alert('重新產生失敗');
-  }
+  Modal.confirm('確定要重新產生邀請碼嗎？舊邀請碼將立即失效。', async function () {
+    const resp = await fetch(`/classes/${CLASS_ID}/invite-code/regenerate`, { method: 'POST' });
+    if (resp.ok) {
+      const data = await resp.json();
+      document.getElementById('invite-code').textContent = data.invite_code;
+    } else {
+      Modal.alert('重新產生失敗');
+    }
+  });
 }
 
 async function removeMember(userId, displayName) {
-  if (!confirm(`確定要移除「${displayName}」嗎？`)) return;
-  const resp = await fetch(`/classes/${CLASS_ID}/members/${userId}`, { method: 'DELETE' });
-  if (resp.status === 204) {
-    const row = document.getElementById(`member-row-${userId}`);
-    if (row) row.remove();
-  } else {
-    alert('移除失敗');
-  }
+  Modal.confirm(`確定要移除「${displayName}」嗎？`, async function () {
+    const resp = await fetch(`/classes/${CLASS_ID}/members/${userId}`, { method: 'DELETE' });
+    if (resp.status === 204) {
+      const row = document.getElementById(`member-row-${userId}`);
+      if (row) row.remove();
+    } else {
+      Modal.alert('移除失敗');
+    }
+  });
 }
 </script>
 {% endblock %}

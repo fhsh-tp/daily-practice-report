@@ -80,24 +80,26 @@
 <script>
 async function toggleArchive(classId, isArchived, name) {
   const action = isArchived ? '取消封存' : '封存';
-  if (!confirm(`確定要${action}班級「${name}」嗎？`)) return;
-  const endpoint = isArchived ? 'unarchive' : 'archive';
-  const resp = await fetch(`/classes/${classId}/${endpoint}`, { method: 'PATCH' });
-  if (resp.ok) {
-    location.reload();
-  } else {
-    alert(`${action}失敗`);
-  }
+  Modal.confirm(`確定要${action}班級「${name}」嗎？`, async function () {
+    const endpoint = isArchived ? 'unarchive' : 'archive';
+    const resp = await fetch(`/classes/${classId}/${endpoint}`, { method: 'PATCH' });
+    if (resp.ok) {
+      location.reload();
+    } else {
+      Modal.alert(`${action}失敗`);
+    }
+  });
 }
 
 async function toggleVisibility(classId, name) {
-  if (!confirm(`確定要隱藏班級「${name}」嗎？學生將無法看到此班級。`)) return;
-  const resp = await fetch(`/classes/${classId}/archive`, { method: 'PATCH' });
-  if (resp.ok) {
-    location.reload();
-  } else {
-    alert('操作失敗');
-  }
+  Modal.confirm(`確定要隱藏班級「${name}」嗎？學生將無法看到此班級。`, async function () {
+    const resp = await fetch(`/classes/${classId}/archive`, { method: 'PATCH' });
+    if (resp.ok) {
+      location.reload();
+    } else {
+      Modal.alert('操作失敗');
+    }
+  });
 }
 </script>
 {% endblock %}

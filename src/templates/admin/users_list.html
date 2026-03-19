@@ -197,25 +197,27 @@ function toggleSelectAll(cb) {
 }
 
 async function deleteUser(id, username) {
-  if (!confirm(`確定要刪除使用者「${username}」嗎？`)) return;
-  const resp = await fetch(`/admin/users/${id}`, { method: 'DELETE' });
-  if (resp.status === 204) {
-    document.querySelector(`[data-user-id="${id}"]`).remove();
-  } else {
-    alert('刪除失敗');
-  }
+  Modal.confirm(`確定要刪除使用者「${username}」嗎？`, async function () {
+    const resp = await fetch(`/admin/users/${id}`, { method: 'DELETE' });
+    if (resp.status === 204) {
+      document.querySelector(`[data-user-id="${id}"]`).remove();
+    } else {
+      Modal.alert('刪除失敗');
+    }
+  });
 }
 
 function bulkDelete() {
   const ids = getSelectedIds();
   if (ids.length === 0) return;
-  if (!confirm(`確定要刪除選取的 ${ids.length} 位使用者嗎？`)) return;
-  fetch('/admin/users/bulk', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids }),
-  }).then(r => r.json()).then(data => {
-    location.reload();
+  Modal.confirm(`確定要刪除選取的 ${ids.length} 位使用者嗎？`, function () {
+    fetch('/admin/users/bulk', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    }).then(r => r.json()).then(data => {
+      location.reload();
+    });
   });
 }
 

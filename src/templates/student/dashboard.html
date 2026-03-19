@@ -359,7 +359,7 @@ async function createClass() {
   if (resp.status === 201) {
     location.reload();
   } else {
-    alert('建立失敗，請稍後再試');
+    Modal.alert('建立失敗，請稍後再試');
   }
 }
 document.getElementById('create-class-modal').addEventListener('click', function(e) {

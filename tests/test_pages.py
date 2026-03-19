@@ -40,6 +40,7 @@ async def db_app():
     """App with real MongoDB mock and pre-loaded users."""
     from core.classes.models import Class, ClassMembership
     from core.users.models import User
+    from gamification.points.models import ClassPointConfig, PointTransaction
     from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride
     from tasks.templates.models import TaskAssignment, TaskTemplate
     from tasks.submissions.models import TaskSubmission
@@ -52,6 +53,7 @@ async def db_app():
             User, Class, ClassMembership,
             TaskTemplate, TaskAssignment, TaskSubmission,
             CheckinConfig, DailyCheckinOverride, CheckinRecord,
+            PointTransaction, ClassPointConfig,
         ],
     )
 
@@ -314,8 +316,8 @@ async def test_submit_task_page_get_returns_html(db_app):
     assert "text/html" in response.headers["content-type"]
 
 
-async def test_submit_task_form_success_redirects_to_dashboard(db_app):
-    """Successful form submission PRG redirects to dashboard."""
+async def test_submit_task_form_success_shows_points(db_app):
+    """Successful form submission PRG redirects to submit page with success and points params."""
     from core.classes.models import Class, ClassMembership
     from tasks.templates.models import FieldDefinition, TaskAssignment, TaskTemplate
     from gamification.points.models import ClassPointConfig, PointTransaction
@@ -356,7 +358,9 @@ async def test_submit_task_form_success_redirects_to_dashboard(db_app):
         )
 
     assert response.status_code == 302
-    assert "/pages/dashboard" in response.headers["location"]
+    location = response.headers["location"]
+    assert f"/pages/student/classes/{cls.id}/submit" in location
+    assert "success=1" in location
 
 
 async def test_submit_task_form_failure_redirects_with_error(db_app):
@@ -387,3 +391,62 @@ async def test_submit_task_form_failure_redirects_with_error(db_app):
     location = response.headers["location"]
     assert f"/pages/student/classes/{cls.id}/submit" in location
     assert "error=" in location
+
+
+# ---------------------------------------------------------------------------
+# My Badges navigation link (task 1.4)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+async def db_app_with_badges():
+    """App with badges router included; needed to test badge navigation URL."""
+    from core.classes.models import Class, ClassMembership
+    from core.users.models import User
+    from gamification.badges.models import BadgeAward, BadgeDefinition
+    from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride
+    from tasks.submissions.models import TaskSubmission
+    from tasks.templates.models import TaskAssignment, TaskTemplate
+
+    client = AsyncMongoMockClient()
+    db = client.get_database("test_badges_nav")
+    await init_beanie(
+        database=db,
+        document_models=[
+            User, Class, ClassMembership,
+            TaskTemplate, TaskAssignment, TaskSubmission,
+            CheckinConfig, DailyCheckinOverride, CheckinRecord,
+            BadgeDefinition, BadgeAward,
+        ],
+    )
+
+    student = User(
+        username="badge_alice",
+        hashed_password="x",
+        display_name="BadgeAlice",
+        permissions=int(STUDENT),
+    )
+    await student.insert()
+
+    from core.auth.router import router as auth_router
+    from gamification.badges.router import router as badges_router
+    from pages.router import router as pages_router
+    from tasks.submissions.router import router as submissions_router
+
+    app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(pages_router)
+    app.include_router(submissions_router)
+    app.include_router(badges_router)
+    yield app, student
+
+    client.close()
+
+
+async def test_my_badges_navigation_link_resolves_correctly(db_app_with_badges):
+    """GET /pages/students/me/badges returns HTTP 200 for an authenticated student."""
+    app, student = db_app_with_badges
+    cookies = _auth_cookie(str(student.id), int(STUDENT))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies) as ac:
+        response = await ac.get("/pages/students/me/badges", follow_redirects=False)
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]

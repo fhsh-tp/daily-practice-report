@@ -164,7 +164,7 @@ async function submitTemplate(e) {
       });
     }
   });
-  if (fields.length === 0) { alert('請至少新增一個欄位'); return; }
+  if (fields.length === 0) { Modal.alert('請至少新增一個欄位'); return; }
 
   const btn = document.querySelector('button[type="submit"]');
   btn.disabled = true;
@@ -189,7 +189,7 @@ async function submitTemplate(e) {
   } else {
     btn.disabled = false;
     const data = await resp.json().catch(() => ({}));
-    alert(data.detail || '儲存失敗，請稍後再試');
+    Modal.alert(data.detail || '儲存失敗，請稍後再試');
   }
 }
 
