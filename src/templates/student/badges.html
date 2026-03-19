@@ -2,23 +2,84 @@
 {% block title %}我的徽章{% endblock %}
 
 {% block content %}
-<h2>我的徽章</h2>
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">我的徽章</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      {% if badges %}已獲得 {{ badges | length }} 枚徽章{% else %}繼續努力，解鎖你的第一枚徽章！{% endif %}
+    </p>
+  </div>
+  <a href="/pages/dashboard"
+     class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+    </svg>
+    返回
+  </a>
+</div>
 
 {% if badges %}
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
   {% for item in badges %}
   {% set award = item.award %}
   {% set defn = item.definition %}
-  <article>
-    <header style="font-size:2.5rem;text-align:center">{{ defn.icon if defn else "🏅" }}</header>
-    <h4>{{ defn.name if defn else "未知徽章" }}</h4>
-    <p>{{ defn.description if defn else "" }}</p>
-    {% if award.reason %}<p><small>原因：{{ award.reason }}</small></p>{% endif %}
-    <footer><small>獲得時間：{{ award.awarded_at[:10] }}</small></footer>
-  </article>
+  <div class="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col items-center gap-3 hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-md transition-all duration-200 cursor-default">
+    {# Badge icon with gradient background ring #}
+    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900 dark:to-brand-800 flex items-center justify-center text-3xl ring-4 ring-brand-100 dark:ring-brand-900 group-hover:ring-brand-200 dark:group-hover:ring-brand-800 transition-all duration-200">
+      {{ defn.icon if defn else "🏅" }}
+    </div>
+
+    {# Badge info #}
+    <div class="text-center w-full">
+      <h4 class="font-heading font-semibold text-sm text-gray-900 dark:text-gray-100 leading-tight">
+        {{ defn.name if defn else "未知徽章" }}
+      </h4>
+      {% if defn and defn.description %}
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">{{ defn.description }}</p>
+      {% endif %}
+    </div>
+
+    {# Award details footer #}
+    <div class="w-full pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1">
+      {% if award.reason %}
+      <p class="text-xs text-gray-500 dark:text-gray-400 text-center leading-tight">{{ award.reason }}</p>
+      {% endif %}
+      <p class="text-xs text-brand-600 dark:text-brand-400 font-medium text-center">
+        {{ award.awarded_at[:10] }}
+      </p>
+    </div>
+  </div>
   {% endfor %}
 </div>
+
 {% else %}
-<p>你還沒有獲得任何徽章，繼續努力！</p>
+{# Empty state: show locked placeholder badges #}
+<div class="mb-8 text-center py-10">
+  <div class="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+    <svg class="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  </div>
+  <h2 class="font-heading font-semibold text-lg text-gray-700 dark:text-gray-300 mb-2">你還沒有獲得任何徽章</h2>
+  <p class="text-sm text-gray-400 dark:text-gray-500 mb-6">完成每日任務、保持簽到連續記錄，即可解鎖成就徽章！</p>
+</div>
+
+{# Locked badge placeholders #}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+  {% for _ in range(5) %}
+  <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 p-4 flex flex-col items-center gap-3 opacity-60">
+    <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center ring-4 ring-gray-100 dark:ring-gray-800">
+      <svg class="w-7 h-7 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+    </div>
+    <div class="text-center">
+      <div class="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded-full mb-2"></div>
+      <div class="h-2 w-24 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% endif %}
+
 {% endblock %}

@@ -36,7 +36,7 @@
 
 ## 6. 徽章頁面（student/badges.html）
 
-- [ ] 6.1 重新設計 `badges.html`：Gamified 卡片格局，含未解鎖灰化狀態
+- [x] 6.1 重新設計 `badges.html`：Gamified 卡片格局，含未解鎖灰化狀態
 
 ## 7. 教師頁面群
 
