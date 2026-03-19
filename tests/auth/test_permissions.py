@@ -10,7 +10,7 @@ def test_permission_flag_check_with_bitwise_and():
     user_perms = READ_OWN_PROFILE | SUBMIT_TASK
     assert user_perms & READ_OWN_PROFILE
     assert user_perms & SUBMIT_TASK
-    assert not (user_perms & Permission.MANAGE_CLASS)
+    assert not (user_perms & Permission.MANAGE_OWN_CLASS)
 
 
 def test_permission_flags_combine_with_bitwise_or():
@@ -25,18 +25,28 @@ def test_permission_flags_combine_with_bitwise_or():
 def test_permission_flag_values_match_spec():
     """Each flag must have the exact hex value from the spec."""
     from core.auth.permissions import Permission
-    assert Permission.READ_OWN_PROFILE  == 0x001
-    assert Permission.WRITE_OWN_PROFILE == 0x002
-    assert Permission.SUBMIT_TASK       == 0x004
-    assert Permission.CHECKIN           == 0x008
-    assert Permission.READ_CLASS        == 0x010
-    assert Permission.MANAGE_CLASS      == 0x020
-    assert Permission.READ_TASKS        == 0x040
-    assert Permission.MANAGE_TASKS      == 0x080
-    assert Permission.READ_USERS        == 0x100
-    assert Permission.MANAGE_USERS      == 0x200
-    assert Permission.READ_SYSTEM       == 0x400
-    assert Permission.WRITE_SYSTEM      == 0x800
+    assert Permission.READ_OWN_PROFILE    == 0x001
+    assert Permission.WRITE_OWN_PROFILE   == 0x002
+    assert Permission.SUBMIT_TASK         == 0x004
+    assert Permission.CHECKIN             == 0x008
+    assert Permission.READ_CLASS          == 0x010
+    assert Permission.MANAGE_OWN_CLASS    == 0x020
+    assert Permission.READ_TASKS          == 0x040
+    assert Permission.MANAGE_TASKS        == 0x080
+    assert Permission.READ_USERS          == 0x100
+    assert Permission.MANAGE_USERS        == 0x200
+    assert Permission.READ_SYSTEM         == 0x400
+    assert Permission.WRITE_SYSTEM        == 0x800
+    assert Permission.MANAGE_ALL_CLASSES  == 0x1000
+
+
+def test_manage_own_class_and_manage_all_classes_are_distinct():
+    """MANAGE_OWN_CLASS and MANAGE_ALL_CLASSES must be distinct flags."""
+    from core.auth.permissions import Permission
+    own = Permission.MANAGE_OWN_CLASS
+    all_ = Permission.MANAGE_ALL_CLASSES
+    assert own != all_
+    assert not (own & all_)
 
 
 # --- Role Presets ---
@@ -52,15 +62,28 @@ def test_student_preset_grants_self_and_read_permissions():
     assert STUDENT & Permission.READ_TASKS
 
 
-def test_teacher_preset_extends_student():
-    """Teacher preset must include all STUDENT flags plus MANAGE_CLASS, MANAGE_TASKS, READ_USERS."""
+def test_teacher_preset_grants_ownership_scoped_class_management():
+    """Teacher preset must include all STUDENT flags plus MANAGE_OWN_CLASS, MANAGE_TASKS, READ_USERS."""
     from core.auth.permissions import STUDENT, TEACHER, Permission
-    # All student flags included
     assert (TEACHER & STUDENT) == STUDENT
-    # Teacher-only flags
-    assert TEACHER & Permission.MANAGE_CLASS
+    assert TEACHER & Permission.MANAGE_OWN_CLASS
     assert TEACHER & Permission.MANAGE_TASKS
     assert TEACHER & Permission.READ_USERS
+    # Must NOT have global class management
+    assert not (TEACHER & Permission.MANAGE_ALL_CLASSES)
+
+
+def test_staff_preset_same_as_teacher():
+    """STAFF preset must have the same permissions as TEACHER."""
+    from core.auth.permissions import STAFF, TEACHER
+    assert int(STAFF) == int(TEACHER)
+
+
+def test_class_manager_preset_includes_manage_all_classes():
+    """CLASS_MANAGER preset must include MANAGE_ALL_CLASSES."""
+    from core.auth.permissions import CLASS_MANAGER, Permission
+    assert CLASS_MANAGER & Permission.MANAGE_ALL_CLASSES
+    assert CLASS_MANAGER & Permission.MANAGE_OWN_CLASS
 
 
 def test_user_admin_preset_grants_user_management():
@@ -83,9 +106,16 @@ def test_sys_admin_preset_grants_system_management():
 
 def test_presets_are_permission_instances():
     """All presets must be Permission instances (not plain int)."""
-    from core.auth.permissions import Permission, STUDENT, TEACHER, USER_ADMIN, SYS_ADMIN
-    for preset in (STUDENT, TEACHER, USER_ADMIN, SYS_ADMIN):
+    from core.auth.permissions import Permission, STUDENT, TEACHER, STAFF, CLASS_MANAGER, USER_ADMIN, SYS_ADMIN
+    for preset in (STUDENT, TEACHER, STAFF, CLASS_MANAGER, USER_ADMIN, SYS_ADMIN):
         assert isinstance(preset, Permission)
+
+
+def test_role_presets_list_contains_all_presets():
+    """ROLE_PRESETS must contain STUDENT, TEACHER, STAFF, CLASS_MANAGER, USER_ADMIN, SYS_ADMIN, SITE_ADMIN."""
+    from core.auth.permissions import ROLE_PRESETS
+    names = {p["name"] for p in ROLE_PRESETS}
+    assert {"STUDENT", "TEACHER", "STAFF", "CLASS_MANAGER", "USER_ADMIN", "SYS_ADMIN", "SITE_ADMIN"}.issubset(names)
 
 
 # --- PERMISSION_SCHEMA ---
@@ -113,3 +143,11 @@ def test_permission_schema_read_write_are_permissions():
     for entry in PERMISSION_SCHEMA:
         assert isinstance(entry["read"], Permission)
         assert isinstance(entry["write"], Permission)
+
+
+def test_permission_schema_class_domain_includes_both_class_flags():
+    """Class domain write should include MANAGE_OWN_CLASS and MANAGE_ALL_CLASSES."""
+    from core.auth.permissions import PERMISSION_SCHEMA, Permission
+    class_entry = next(e for e in PERMISSION_SCHEMA if e["domain"] == "Class")
+    assert class_entry["write"] & Permission.MANAGE_OWN_CLASS
+    assert class_entry["write"] & Permission.MANAGE_ALL_CLASSES

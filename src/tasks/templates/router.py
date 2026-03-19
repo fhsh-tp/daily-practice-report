@@ -117,6 +117,46 @@ from pages.deps import get_page_user
 from shared.webpage import webpage
 
 
+@router.get("/pages/teacher/classes/{class_id}/members", name="class_members_page")
+@webpage.page("teacher/class_members.html")
+async def class_members_page(
+    request: Request,
+    class_id: str,
+    teacher: User = Depends(get_page_user),
+):
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES
+    from core.classes.models import Class, ClassMembership
+    from core.classes.service import can_manage_class
+    from core.users.models import User as UserModel
+    from fastapi import HTTPException, status as http_status
+
+    if not (teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Class not found")
+    if not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    memberships = await ClassMembership.find(ClassMembership.class_id == class_id).to_list()
+    members = []
+    for m in memberships:
+        u = await UserModel.get(m.user_id)
+        members.append({
+            "user_id": m.user_id,
+            "username": u.username if u else m.user_id,
+            "display_name": u.display_name if u else m.user_id,
+            "role": m.role,
+        })
+    return {
+        "current_user": teacher,
+        "class_id": class_id,
+        "class_name": cls.name,
+        "invite_code": cls.invite_code,
+        "members": members,
+    }
+
+
 @router.get("/pages/teacher/classes/{class_id}/templates", name="templates_list_page")
 @webpage.page("teacher/templates_list.html")
 async def templates_list_page(

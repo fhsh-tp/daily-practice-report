@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from core.auth.deps import get_current_user
-from core.auth.permissions import MANAGE_CLASS
+from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance

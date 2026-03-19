@@ -99,11 +99,11 @@ async def dashboard_page(
             "today_template": today_template,
         })
 
-    from core.auth.permissions import MANAGE_CLASS, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
     return {
         "current_user": current_user,
         "classes": classes,
-        "can_manage_class": bool(current_user.permissions & MANAGE_CLASS),
+        "can_manage_class": bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)),
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
@@ -213,8 +213,10 @@ async def admin_users_list(
                 "id": str(u.id),
                 "username": u.username,
                 "display_name": u.display_name,
+                "name": u.name,
                 "permissions": u.permissions,
                 "tags": u.tags,
+                "identity_tags": [t.value if hasattr(t, "value") else t for t in u.identity_tags],
             }
             for u in users
         ],
@@ -257,20 +259,37 @@ async def admin_user_new_submit(
     password: str = Form(...),
     permissions: int = Form(default=0),
     tags: str = Form(default=""),
+    name: str = Form(default=""),
+    email: str = Form(default=""),
+    class_name: str = Form(default=""),
+    seat_number: int = Form(default=0),
     current_user: User = Depends(_require_manage_users),
 ):
     from core.auth.password import hash_password
+    from core.users.models import IdentityTag, StudentProfile
+    form_data = await request.form()
+    identity_tag_values = form_data.getlist("identity_tags")
+    valid_tags = {t.value for t in IdentityTag}
+    identity_tags = [IdentityTag(v) for v in identity_tag_values if v in valid_tags]
+
     existing = await User.find_one(User.username == username)
     if existing:
         error_url = request.url_for("admin_user_new_page").include_query_params(error="使用者名稱已存在")
         return (str(error_url), 302)
     tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+    student_profile = None
+    if IdentityTag.STUDENT in identity_tags and (class_name or seat_number):
+        student_profile = StudentProfile(class_name=class_name, seat_number=seat_number)
     user = User(
         username=username,
         hashed_password=hash_password(password),
         display_name=display_name,
+        name=name,
+        email=email,
         permissions=permissions,
         tags=tags_list,
+        identity_tags=identity_tags,
+        student_profile=student_profile,
     )
     await user.insert()
     success_url = request.url_for("admin_users_list_page").include_query_params(success="使用者已建立")
@@ -295,8 +314,12 @@ async def admin_user_edit(
             "id": str(user.id),
             "username": user.username,
             "display_name": user.display_name,
+            "name": user.name,
+            "email": user.email,
             "permissions": user.permissions,
             "tags": user.tags,
+            "identity_tags": [t.value if hasattr(t, "value") else t for t in user.identity_tags],
+            "student_profile": user.student_profile,
         },
         "initial_levels": _compute_initial_levels(user.permissions, schema),
         "schema": schema,
@@ -316,15 +339,32 @@ async def admin_user_edit_submit(
     permissions: int = Form(default=0),
     tags: str = Form(default=""),
     new_password: str = Form(default=""),
+    name: str = Form(default=""),
+    email: str = Form(default=""),
+    class_name: str = Form(default=""),
+    seat_number: int = Form(default=0),
     current_user: User = Depends(_require_manage_users),
 ):
     from core.auth.password import hash_password
+    from core.users.models import IdentityTag, StudentProfile
+    form_data = await request.form()
+    identity_tag_values = form_data.getlist("identity_tags")
+    valid_tags = {t.value for t in IdentityTag}
+    identity_tags = [IdentityTag(v) for v in identity_tag_values if v in valid_tags]
+
     user = await User.get(user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.display_name = display_name
+    user.name = name
+    user.email = email
     user.permissions = permissions
     user.tags = [t.strip() for t in tags.split(",") if t.strip()]
+    user.identity_tags = identity_tags
+    if IdentityTag.STUDENT in identity_tags:
+        user.student_profile = StudentProfile(class_name=class_name, seat_number=seat_number)
+    else:
+        user.student_profile = None
     if new_password:
         user.hashed_password = hash_password(new_password)
     await user.save()

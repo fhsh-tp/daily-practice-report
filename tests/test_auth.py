@@ -132,7 +132,7 @@ def test_password_verify_wrong():
 
 async def test_require_permission_allows_user_with_flag(db):
     from core.auth.guards import require_permission
-    from core.auth.permissions import MANAGE_CLASS
+    from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
     from core.users.models import User
     from core.auth.password import hash_password
 
@@ -151,7 +151,7 @@ async def test_require_permission_allows_user_with_flag(db):
 
 async def test_require_permission_rejects_user_without_flag(db):
     from core.auth.guards import require_permission
-    from core.auth.permissions import MANAGE_CLASS, SUBMIT_TASK
+    from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS, SUBMIT_TASK
     from core.users.models import User
     from core.auth.password import hash_password
     from fastapi import HTTPException

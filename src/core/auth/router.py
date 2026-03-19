@@ -29,6 +29,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str
+
+
 @router.post("/login")
 async def login(body: LoginRequest, response: Response):
     provider: AuthProvider = registry.get(AuthProvider, "local")
@@ -70,6 +74,17 @@ async def me(current_user: User = Depends(get_current_user)):
         "permissions": current_user.permissions,
         "tags": current_user.tags,
     }
+
+
+@router.put("/profile")
+async def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Update only display_name. All other fields are ignored for self-edit."""
+    current_user.display_name = body.display_name
+    await current_user.save()
+    return {"display_name": current_user.display_name}
 
 
 @router.post("/change-password")

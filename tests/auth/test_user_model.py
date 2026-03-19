@@ -61,3 +61,76 @@ async def test_user_created_with_permissions_preset(db):
     await u.insert()
     fetched = await User.get(u.id)
     assert fetched.permissions == int(TEACHER)
+
+
+# --- IdentityTag ---
+
+def test_identity_tag_enum_has_three_values():
+    """IdentityTag must define exactly teacher, student, staff."""
+    from core.users.models import IdentityTag
+    values = {t.value for t in IdentityTag}
+    assert values == {"teacher", "student", "staff"}
+
+
+async def test_user_identity_tags_defaults_to_empty_list(db):
+    """User.identity_tags must default to an empty list."""
+    from core.users.models import User
+    u = User(username="u1", hashed_password="h", display_name="U1")
+    assert u.identity_tags == []
+
+
+async def test_user_can_hold_multiple_identity_tags(db):
+    """User must accept multiple identity tags."""
+    from core.users.models import User, IdentityTag
+    u = User(
+        username="u2",
+        hashed_password="h",
+        display_name="U2",
+        identity_tags=[IdentityTag.TEACHER, IdentityTag.STAFF],
+    )
+    await u.insert()
+    fetched = await User.get(u.id)
+    assert IdentityTag.TEACHER in fetched.identity_tags
+    assert IdentityTag.STAFF in fetched.identity_tags
+
+
+# --- User model new fields ---
+
+async def test_user_name_defaults_to_empty_string(db):
+    """User.name must default to empty string."""
+    from core.users.models import User
+    u = User(username="u3", hashed_password="h", display_name="U3")
+    assert u.name == ""
+
+
+async def test_user_email_defaults_to_empty_string(db):
+    """User.email must default to empty string."""
+    from core.users.models import User
+    u = User(username="u4", hashed_password="h", display_name="U4")
+    assert u.email == ""
+
+
+async def test_user_student_profile_defaults_to_none(db):
+    """User.student_profile must default to None."""
+    from core.users.models import User
+    u = User(username="u5", hashed_password="h", display_name="U5")
+    assert u.student_profile is None
+
+
+async def test_user_student_profile_stores_class_name_and_seat(db):
+    """StudentProfile must store class_name and seat_number."""
+    from core.users.models import User, StudentProfile, IdentityTag
+    u = User(
+        username="stu1",
+        hashed_password="h",
+        display_name="Stu1",
+        name="陳小明",
+        email="stu@school.edu",
+        identity_tags=[IdentityTag.STUDENT],
+        student_profile=StudentProfile(class_name="302班", seat_number=12),
+    )
+    await u.insert()
+    fetched = await User.get(u.id)
+    assert fetched.student_profile.class_name == "302班"
+    assert fetched.student_profile.seat_number == 12
+    assert fetched.name == "陳小明"

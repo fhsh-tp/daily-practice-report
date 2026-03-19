@@ -18,7 +18,7 @@ async def db():
 async def test_authorized_request_passes_guard(db):
     """Authorized user with the required permission flag must pass the guard."""
     from core.auth.guards import require_permission
-    from core.auth.permissions import Permission, MANAGE_CLASS
+    from core.auth.permissions import Permission, MANAGE_OWN_CLASS as MANAGE_CLASS
     from core.users.models import User
     from core.auth.password import hash_password
 
@@ -37,7 +37,7 @@ async def test_authorized_request_passes_guard(db):
 async def test_unauthorized_request_blocked_by_guard(db):
     """User without required permission flag must get HTTP 403."""
     from core.auth.guards import require_permission
-    from core.auth.permissions import Permission, MANAGE_CLASS, READ_OWN_PROFILE
+    from core.auth.permissions import Permission, MANAGE_OWN_CLASS as MANAGE_CLASS, READ_OWN_PROFILE
     from core.users.models import User
     from core.auth.password import hash_password
     from fastapi import HTTPException

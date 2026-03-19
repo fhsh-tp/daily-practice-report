@@ -35,6 +35,22 @@
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="name">姓名</label>
+          <input type="text" id="name" name="name"
+                 value="{{ edit_user.name if edit_user else '' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                 placeholder="真實姓名">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="email">Email</label>
+          <input type="email" id="email" name="email"
+                 value="{{ edit_user.email if edit_user else '' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                 placeholder="user@example.com">
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="password">
             密碼{% if edit_user %} <span class="text-gray-400 font-normal">（留空則不更改）</span>{% else %} <span class="text-red-500">*</span>{% endif %}
           </label>
@@ -44,11 +60,59 @@
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">身分識別</label>
+          <div class="flex flex-wrap gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="identity_tags" value="teacher" id="tag-teacher"
+                     onchange="toggleStudentProfile()"
+                     {% if edit_user and 'teacher' in edit_user.identity_tags %}checked{% endif %}
+                     class="rounded border-gray-300 dark:border-gray-600 text-brand-600">
+              <span class="text-sm text-gray-700 dark:text-gray-300">教師</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="identity_tags" value="student" id="tag-student"
+                     onchange="toggleStudentProfile()"
+                     {% if edit_user and 'student' in edit_user.identity_tags %}checked{% endif %}
+                     class="rounded border-gray-300 dark:border-gray-600 text-brand-600">
+              <span class="text-sm text-gray-700 dark:text-gray-300">學生</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="identity_tags" value="staff" id="tag-staff"
+                     onchange="toggleStudentProfile()"
+                     {% if edit_user and 'staff' in edit_user.identity_tags %}checked{% endif %}
+                     class="rounded border-gray-300 dark:border-gray-600 text-brand-600">
+              <span class="text-sm text-gray-700 dark:text-gray-300">職員</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="tags">標籤 <span class="text-gray-400 font-normal">（以半形逗號分隔）</span></label>
           <input type="text" id="tags" name="tags"
                  value="{{ edit_user.tags | join(',') if edit_user else '' }}"
                  class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                  placeholder="math, science">
+        </div>
+      </div>
+    </div>
+
+    {# Student profile (conditional) #}
+    <div id="student-profile-block" class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-4 hidden">
+      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">學生資料</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="class_name">班級</label>
+          <input type="text" id="class_name" name="class_name"
+                 value="{{ edit_user.student_profile.class_name if edit_user and edit_user.student_profile else '' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                 placeholder="302班">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="seat_number">座號</label>
+          <input type="number" id="seat_number" name="seat_number" min="0"
+                 value="{{ edit_user.student_profile.seat_number if edit_user and edit_user.student_profile else '' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                 placeholder="1">
         </div>
       </div>
     </div>
@@ -129,6 +193,19 @@
 <script>
 const SCHEMA = {{ schema | tojson }};
 const PRESETS = {{ presets | tojson }};
+
+function toggleStudentProfile() {
+  const isStudent = document.getElementById('tag-student').checked;
+  const block = document.getElementById('student-profile-block');
+  if (isStudent) {
+    block.classList.remove('hidden');
+  } else {
+    block.classList.add('hidden');
+  }
+}
+
+// Init on page load
+(function() { toggleStudentProfile(); })();
 
 function recomputePermissions() {
   let total = 0;
