@@ -27,12 +27,12 @@
 
 ## 5. 任務提交頁面（student/submit_task.html）
 
-- [ ] 5.1 移除 EasyMDE CDN 與初始化腳本；完成 EasyMDE used for markdown fields（REMOVED）
-- [ ] 5.2 加入 Toast UI Editor CDN（`https://uicdn.toast.com/editor/latest/`）；完成 Toast UI Editor 取代 EasyMDE 設計決策
-- [ ] 5.3 實作混合欄位渲染：text → `<input type="text">`、number → `<input type="number">`、checkbox → `<input type="checkbox">`
-- [ ] 5.4 實作 markdown 欄位：掛載 `toastui.Editor`（`initialEditType: 'markdown'`、`previewStyle: 'vertical'`）並在 `toolbarItems` 旁加入擴充用的程式碼註解（`['link', 'image']`、`['table']`）；完成 Student task submission HTML page 的 TUI Editor 整合
-- [ ] 5.5 在表單 submit 前同步 TUI Editor 內容至對應 `<input type="hidden">`
-- [ ] 5.6 支援 dark mode：依 `<html class="dark">` 切換 TUI Editor `theme: 'dark'` 或 `''`
+- [x] 5.1 移除 EasyMDE CDN 與初始化腳本；完成 EasyMDE used for markdown fields（REMOVED）
+- [x] 5.2 加入 Toast UI Editor CDN（`https://uicdn.toast.com/editor/latest/`）；完成 Toast UI Editor 取代 EasyMDE 設計決策
+- [x] 5.3 實作混合欄位渲染：text → `<input type="text">`、number → `<input type="number">`、checkbox → `<input type="checkbox">`
+- [x] 5.4 實作 markdown 欄位：掛載 `toastui.Editor`（`initialEditType: 'markdown'`、`previewStyle: 'vertical'`）並在 `toolbarItems` 旁加入擴充用的程式碼註解（`['link', 'image']`、`['table']`）；完成 Student task submission HTML page 的 TUI Editor 整合
+- [x] 5.5 在表單 submit 前同步 TUI Editor 內容至對應 `<input type="hidden">`
+- [x] 5.6 支援 dark mode：依 `<html class="dark">` 切換 TUI Editor `theme: 'dark'` 或 `''`
 
 ## 6. 徽章頁面（student/badges.html）
 
