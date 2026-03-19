@@ -141,9 +141,14 @@
       <div class="space-y-3">
         {% for domain in schema %}
         {% set level = initial_levels[domain.domain] %}
-        <div class="flex items-center gap-4">
-          <span class="w-20 text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">{{ domain.domain }}</span>
-          <div class="flex gap-2" data-domain="{{ domain.domain }}" data-read="{{ domain.read }}" data-write="{{ domain.write }}">
+        <div class="flex items-start gap-4">
+          <div class="w-28 shrink-0 pt-0.5">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ domain.label }}</span>
+            {% if domain.description %}
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ domain.description }}</p>
+            {% endif %}
+          </div>
+          <div class="flex gap-2 pt-0.5" data-domain="{{ domain.domain }}" data-read="{{ domain.read }}" data-write="{{ domain.write }}">
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="perm_{{ domain.domain }}" value="none"
                      class="domain-radio text-brand-600 cursor-pointer"
@@ -233,5 +238,7 @@ function applyPreset(presetValue) {
   });
   recomputePermissions();
 }
+
+recomputePermissions();
 </script>
 {% endblock %}

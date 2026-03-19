@@ -94,26 +94,36 @@ SITE_ADMIN = (
 PERMISSION_SCHEMA: list[dict] = [
     {
         "domain": "Self",
+        "label": "個人",
+        "description": "只讀：查看個人資料、提交任務、打卡　讀寫：＋修改個人資料",
         "read":  Permission.READ_OWN_PROFILE | Permission.SUBMIT_TASK | Permission.CHECKIN,
         "write": Permission.WRITE_OWN_PROFILE,
     },
     {
         "domain": "Class",
+        "label": "班級",
+        "description": "只讀：查看班級　讀寫：＋管理自己的班級（MANAGE_OWN_CLASS）＋管理所有班級（MANAGE_ALL_CLASSES）",
         "read":  Permission.READ_CLASS,
         "write": Permission.MANAGE_OWN_CLASS | Permission.MANAGE_ALL_CLASSES,
     },
     {
         "domain": "Task",
+        "label": "任務",
+        "description": "只讀：查看任務模板　讀寫：＋建立與管理任務模板",
         "read":  Permission.READ_TASKS,
         "write": Permission.MANAGE_TASKS,
     },
     {
         "domain": "User",
+        "label": "使用者",
+        "description": "只讀：查看使用者清單　讀寫：＋建立、編輯、刪除使用者",
         "read":  Permission.READ_USERS,
         "write": Permission.MANAGE_USERS,
     },
     {
         "domain": "System",
+        "label": "系統",
+        "description": "只讀：查看系統設定　讀寫：＋修改系統設定",
         "read":  Permission.READ_SYSTEM,
         "write": Permission.WRITE_SYSTEM,
     },

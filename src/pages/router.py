@@ -120,6 +120,8 @@ def _build_schema():
     return [
         {
             "domain": e["domain"],
+            "label": e.get("label", e["domain"]),
+            "description": e.get("description", ""),
             "read": int(e["read"]),
             "write": int(e["write"]),
             "all": int(e["read"]) | int(e["write"]),
