@@ -40,11 +40,11 @@
 
 ## 7. 教師頁面群
 
-- [ ] 7.1 重新設計 `teacher/templates_list.html`：Tailwind 表格/卡片佈局
-- [ ] 7.2 重新設計 `teacher/template_form.html`：欄位表單，Tailwind 輸入元件
-- [ ] 7.3 重新設計 `teacher/points_manage.html`：積分管理表格，Tailwind 樣式
+- [x] 7.1 重新設計 `teacher/templates_list.html`：Tailwind 表格/卡片佈局
+- [x] 7.2 重新設計 `teacher/template_form.html`：欄位表單，Tailwind 輸入元件
+- [x] 7.3 重新設計 `teacher/points_manage.html`：積分管理表格，Tailwind 樣式
 
 ## 8. 社群頁面群
 
-- [ ] 8.1 重新設計 `community/feed.html`：活動動態 Feed，卡片時間軸佈局
-- [ ] 8.2 重新設計 `community/leaderboard.html`：Medal podium + 自己高亮表格排行榜
+- [x] 8.1 重新設計 `community/feed.html`：活動動態 Feed，卡片時間軸佈局
+- [x] 8.2 重新設計 `community/leaderboard.html`：Medal podium + 自己高亮表格排行榜
