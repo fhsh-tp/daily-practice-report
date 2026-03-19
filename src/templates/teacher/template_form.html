@@ -16,7 +16,7 @@
     </h1>
   </div>
 
-  <form method="post" id="template-form" class="space-y-6">
+  <form id="template-form" class="space-y-6" onsubmit="submitTemplate(event)">
 
     {# Basic info card #}
     <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
@@ -139,7 +139,59 @@
 
 {% block scripts %}
 <script>
+const CLASS_ID = '{{ class_id }}';
+const TEMPLATE_ID = '{{ template.id if template else "" }}';
 let fieldCount = {{ (template.fields | length) if template else 1 }};
+
+async function submitTemplate(e) {
+  e.preventDefault();
+  const name = document.querySelector('[name="name"]').value.trim();
+  const description = document.querySelector('[name="description"]').value.trim();
+  if (!name) { document.querySelector('[name="name"]').focus(); return; }
+
+  // Collect all visible field rows
+  const rows = document.querySelectorAll('#fields-container > div[id^="field-"]');
+  const fields = [];
+  rows.forEach(row => {
+    const nameInput = row.querySelector('input[type="text"]');
+    const typeSelect = row.querySelector('select');
+    const requiredBox = row.querySelector('input[type="checkbox"]');
+    if (nameInput && nameInput.value.trim()) {
+      fields.push({
+        name: nameInput.value.trim(),
+        field_type: typeSelect ? typeSelect.value : 'text',
+        required: requiredBox ? requiredBox.checked : false,
+      });
+    }
+  });
+  if (fields.length === 0) { alert('請至少新增一個欄位'); return; }
+
+  const btn = document.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  let url, method;
+  if (TEMPLATE_ID) {
+    url = `/templates/${TEMPLATE_ID}`;
+    method = 'PATCH';
+  } else {
+    url = `/classes/${CLASS_ID}/templates`;
+    method = 'POST';
+  }
+
+  const resp = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description, fields }),
+  });
+
+  if (resp.ok) {
+    location.href = `/pages/teacher/classes/${CLASS_ID}/templates`;
+  } else {
+    btn.disabled = false;
+    const data = await resp.json().catch(() => ({}));
+    alert(data.detail || '儲存失敗，請稍後再試');
+  }
+}
 
 function fieldRowHTML(idx) {
   return `
