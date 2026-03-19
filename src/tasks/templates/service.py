@@ -1,8 +1,8 @@
 """Task template service functions."""
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from tasks.templates.models import FieldDefinition, TaskAssignment, TaskTemplate
+from tasks.templates.models import FieldDefinition, TaskAssignment, TaskScheduleRule, TaskTemplate
 from core.users.models import User
 
 
@@ -63,6 +63,49 @@ async def delete_template(template_id: str) -> None:
     tmpl = await TaskTemplate.get(template_id)
     if tmpl:
         await tmpl.delete()
+
+
+async def expand_schedule_rule(rule: TaskScheduleRule) -> list[TaskAssignment]:
+    """Expand a TaskScheduleRule into TaskAssignment records.
+
+    Modes:
+    - once: creates 1 assignment for rule.date
+    - range: creates assignments for each day in [start_date, end_date],
+             filtered to weekdays if rule.weekdays is non-empty (max 365 days)
+    - open: creates assignments for 90 days starting at rule.start_date
+    """
+    dates: list[date] = []
+
+    if rule.schedule_type == "once":
+        if rule.date:
+            dates = [rule.date]
+
+    elif rule.schedule_type == "range":
+        current = rule.start_date
+        limit = rule.start_date + timedelta(days=364)
+        end = min(rule.end_date, limit)
+        while current <= end:
+            if not rule.weekdays or current.weekday() in rule.weekdays:
+                dates.append(current)
+            current += timedelta(days=1)
+
+    elif rule.schedule_type == "open":
+        current = rule.start_date
+        for _ in range(90):
+            dates.append(current)
+            current += timedelta(days=1)
+
+    assignments = []
+    for d in dates:
+        assignment = TaskAssignment(
+            template_id=rule.template_id,
+            class_id=rule.class_id,
+            date=d,
+        )
+        await assignment.insert()
+        assignments.append(assignment)
+
+    return assignments
 
 
 async def assign_template_to_date(

@@ -1,6 +1,8 @@
 """Task templates router."""
 from datetime import date
-from typing import Any
+from typing import Any, Optional
+
+_DateField = date  # module-level alias — prevents 'date' Pydantic field from shadowing the type
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -14,6 +16,7 @@ from tasks.templates.service import (
     assign_template_to_date,
     create_template,
     delete_template,
+    expand_schedule_rule,
     get_template_for_date,
     unarchive_template,
     update_template,
@@ -45,6 +48,16 @@ class UpdateTemplateRequest(BaseModel):
     fields: list[FieldDef] | None = None
 
 
+class ScheduleRuleRequest(BaseModel):
+    template_id: str
+    schedule_type: str  # "once" | "range" | "open"
+    start_date: Optional[_DateField] = None
+    end_date: Optional[_DateField] = None
+    weekdays: list[int] = []
+    max_submissions_per_student: int = 0
+    date: Optional[_DateField] = None
+
+
 @router.post("/classes/{class_id}/templates", status_code=status.HTTP_201_CREATED)
 async def create_template_endpoint(
     class_id: str,
@@ -62,6 +75,28 @@ async def create_template_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     return {"id": str(tmpl.id), "name": tmpl.name}
+
+
+@router.post("/classes/{class_id}/schedule-rules", status_code=status.HTTP_201_CREATED)
+async def create_schedule_rule(
+    class_id: str,
+    body: ScheduleRuleRequest,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from tasks.templates.models import TaskScheduleRule
+    rule = TaskScheduleRule(
+        template_id=body.template_id,
+        class_id=class_id,
+        schedule_type=body.schedule_type,
+        date=body.date,
+        start_date=body.start_date,
+        end_date=body.end_date,
+        weekdays=body.weekdays,
+        max_submissions_per_student=body.max_submissions_per_student,
+    )
+    await rule.insert()
+    assignments = await expand_schedule_rule(rule)
+    return {"assignments_created": len(assignments)}
 
 
 @router.post("/classes/{class_id}/template-assignments", status_code=status.HTTP_201_CREATED)

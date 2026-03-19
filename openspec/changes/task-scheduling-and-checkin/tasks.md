@@ -1,23 +1,23 @@
 ## 1. 資料模型 — TaskScheduleRule 展開後批次建立 TaskAssignment records
 
-- [ ] [P] 1.1 在 `tasks/templates/models.py` 新增 `TaskScheduleRule` document（欄位：`template_id`, `class_id`, `schedule_type` ("once"|"range"|"open"), `date`, `start_date`, `end_date`, `weekdays`, `max_submissions_per_student`, `created_at`）
-- [ ] [P] 1.2 在 `tasks/templates/service.py` 新增 `expand_schedule_rule(rule)` 函式，依 schedule_type 批次建立 TaskAssignment records（Teacher creates a one-time task schedule；Teacher creates a date-range task schedule；Teacher creates an open-ended task schedule）
-- [ ] 1.3 新增測試：`expand_schedule_rule` once 模式建立 1 筆 assignment；range + weekdays 模式只建立符合星期的 assignments；open 模式最多展開 90 天
+- [x] [P] 1.1 在 `tasks/templates/models.py` 新增 `TaskScheduleRule` document（欄位：`template_id`, `class_id`, `schedule_type` ("once"|"range"|"open"), `date`, `start_date`, `end_date`, `weekdays`, `max_submissions_per_student`, `created_at`）
+- [x] [P] 1.2 在 `tasks/templates/service.py` 新增 `expand_schedule_rule(rule)` 函式，依 schedule_type 批次建立 TaskAssignment records（Teacher creates a one-time task schedule；Teacher creates a date-range task schedule；Teacher creates an open-ended task schedule）
+- [x] 1.3 新增測試：`expand_schedule_rule` once 模式建立 1 筆 assignment；range + weekdays 模式只建立符合星期的 assignments；open 模式最多展開 90 天
 
 ## 2. 排程 API
 
-- [ ] 2.1 在 `tasks/templates/router.py` 新增 `POST /classes/{class_id}/schedule-rules` endpoint，接收排程規則、呼叫 `expand_schedule_rule()`、回傳建立的 assignment 數量（Teacher assigns template to a date via schedule rule）
-- [ ] 2.2 新增測試：POST schedule-rule range 模式回傳正確數量；weekday filter 正確過濾；open 模式上限 90 筆
+- [x] 2.1 在 `tasks/templates/router.py` 新增 `POST /classes/{class_id}/schedule-rules` endpoint，接收排程規則、呼叫 `expand_schedule_rule()`、回傳建立的 assignment 數量（Teacher assigns template to a date via schedule rule）
+- [x] 2.2 新增測試：POST schedule-rule range 模式回傳正確數量；weekday filter 正確過濾；open 模式上限 90 筆
 
 ## 3. 提交次數限制 — Teacher sets a per-student submission limit on a schedule rule
 
-- [ ] 3.1 在 `tasks/submissions/service.py` 的 `submit_task()` 中，查詢對應 `TaskScheduleRule` 的 `max_submissions_per_student`，若超出則拋出 ValueError（Teacher sets a per-student submission limit on a schedule rule；Submission rejected when limit reached）
-- [ ] 3.2 新增測試：已達提交上限時 submit_task 拋出 ValueError；`max_submissions_per_student=0` 時不限制（No limit when max_submissions_per_student is zero）
+- [x] 3.1 在 `tasks/submissions/service.py` 的 `submit_task()` 中，查詢對應 `TaskScheduleRule` 的 `max_submissions_per_student`，若超出則拋出 ValueError（Teacher sets a per-student submission limit on a schedule rule；Submission rejected when limit reached）
+- [x] 3.2 新增測試：已達提交上限時 submit_task 拋出 ValueError；`max_submissions_per_student=0` 時不限制（No limit when max_submissions_per_student is zero）
 
 ## 4. 排程設定頁面 — 指派頁面重新設計為四模式排程表單
 
-- [ ] 4.1 重新設計 `teacher/template_assign.html`：加入模式切換（一次性 / 日期區間 / 開放式），根據模式顯示對應欄位（date picker / start-end + weekday checkboxes），送出呼叫 `POST /classes/{class_id}/schedule-rules`（Template assign page shows four scheduling modes；Teacher assigns template to a date using range mode with weekday filter）
-- [ ] 4.2 新增測試：template_assign_page 載入回傳 HTTP 200
+- [x] 4.1 重新設計 `teacher/template_assign.html`：加入模式切換（一次性 / 日期區間 / 開放式），根據模式顯示對應欄位（date picker / start-end + weekday checkboxes），送出呼叫 `POST /classes/{class_id}/schedule-rules`（Template assign page shows four scheduling modes；Teacher assigns template to a date using range mode with weekday filter）
+- [x] 4.2 新增測試：template_assign_page 載入回傳 HTTP 200
 
 ## 5. 教師簽到設定頁面 — 教師簽到設定頁：讀取現有 config 並允許更新
 

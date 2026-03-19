@@ -133,6 +133,44 @@ async def checkin_browser(
     return str(request.url_for("dashboard_page"))
 
 
+@router.get("/pages/teacher/classes/{class_id}/checkin-config", name="checkin_config_page")
+@webpage.page("teacher/checkin_config.html")
+async def checkin_config_page(
+    request: Request,
+    class_id: str,
+    teacher: User = Depends(get_page_user),
+    success: Optional[str] = None,
+):
+    """Teacher page to view and update checkin schedule and single-day overrides."""
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES
+    from fastapi import HTTPException as _HTTPException
+    from tasks.checkin.models import CheckinConfig
+
+    if not (teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)):
+        raise _HTTPException(status_code=403, detail="Permission denied")
+
+    config = await CheckinConfig.find_one(CheckinConfig.class_id == class_id)
+    if config:
+        config_data = {
+            "active_weekdays": config.active_weekdays,
+            "window_start": config.window_start,
+            "window_end": config.window_end,
+        }
+    else:
+        config_data = {
+            "active_weekdays": list(range(7)),  # default: all days
+            "window_start": None,
+            "window_end": None,
+        }
+
+    return {
+        "current_user": teacher,
+        "class_id": class_id,
+        "config": config_data,
+        "success": success,
+    }
+
+
 @router.get("/classes/{class_id}/checkin-status")
 async def checkin_status(class_id: str, user: User = Depends(get_current_user)):
     now = datetime.now(timezone.utc)
