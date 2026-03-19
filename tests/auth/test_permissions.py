@@ -86,3 +86,30 @@ def test_presets_are_permission_instances():
     from core.auth.permissions import Permission, STUDENT, TEACHER, USER_ADMIN, SYS_ADMIN
     for preset in (STUDENT, TEACHER, USER_ADMIN, SYS_ADMIN):
         assert isinstance(preset, Permission)
+
+
+# --- PERMISSION_SCHEMA ---
+
+def test_permission_schema_has_five_domains():
+    """PERMISSION_SCHEMA must contain exactly five domain entries."""
+    from core.auth.permissions import PERMISSION_SCHEMA
+    assert len(PERMISSION_SCHEMA) == 5
+    domains = {entry["domain"] for entry in PERMISSION_SCHEMA}
+    assert domains == {"Self", "Class", "Task", "User", "System"}
+
+
+def test_permission_schema_entries_have_required_keys():
+    """Each PERMISSION_SCHEMA entry must have domain, read, write keys."""
+    from core.auth.permissions import PERMISSION_SCHEMA
+    for entry in PERMISSION_SCHEMA:
+        assert "domain" in entry
+        assert "read" in entry
+        assert "write" in entry
+
+
+def test_permission_schema_read_write_are_permissions():
+    """PERMISSION_SCHEMA read/write values must be Permission instances."""
+    from core.auth.permissions import PERMISSION_SCHEMA, Permission
+    for entry in PERMISSION_SCHEMA:
+        assert isinstance(entry["read"], Permission)
+        assert isinstance(entry["write"], Permission)

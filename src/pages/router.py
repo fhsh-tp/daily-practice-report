@@ -1,5 +1,5 @@
-"""Pages router — login, logout redirect, and dashboard."""
-from fastapi import APIRouter, Depends, Form, Request
+"""Pages router — login, logout redirect, dashboard, and admin panel."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from core.users.models import User
@@ -108,3 +108,261 @@ async def dashboard_page(
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Admin Panel — Cookie auth + admin permission guard
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _build_schema():
+    """Build schema list with precomputed 'all' (read|write) for templates."""
+    from core.auth.permissions import PERMISSION_SCHEMA
+    return [
+        {
+            "domain": e["domain"],
+            "read": int(e["read"]),
+            "write": int(e["write"]),
+            "all": int(e["read"]) | int(e["write"]),
+        }
+        for e in PERMISSION_SCHEMA
+    ]
+
+
+def _compute_initial_levels(permissions: int, schema: list) -> dict:
+    """Return {'Self': 'none'|'read'|'readwrite', ...} for each domain."""
+    levels = {}
+    for entry in schema:
+        has_write = bool(permissions & entry["write"])
+        has_read = bool(permissions & entry["read"])
+        if has_write:
+            levels[entry["domain"]] = "readwrite"
+        elif has_read:
+            levels[entry["domain"]] = "read"
+        else:
+            levels[entry["domain"]] = "none"
+    return levels
+
+
+def _admin_context(current_user: User) -> dict:
+    """Common context injected into every admin page."""
+    from core.auth.permissions import MANAGE_USERS, WRITE_SYSTEM
+    return {
+        "current_user": current_user,
+        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "can_manage_class": False,
+        "can_manage_tasks": False,
+        "classes": [],
+    }
+
+
+async def _require_admin(current_user: User = Depends(get_page_user)) -> User:
+    """Guard: user must have MANAGE_USERS or WRITE_SYSTEM."""
+    from core.auth.permissions import MANAGE_USERS, WRITE_SYSTEM
+    if not (current_user.permissions & MANAGE_USERS or current_user.permissions & WRITE_SYSTEM):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return current_user
+
+
+async def _require_manage_users(current_user: User = Depends(get_page_user)) -> User:
+    from core.auth.permissions import MANAGE_USERS
+    if not (current_user.permissions & MANAGE_USERS):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return current_user
+
+
+async def _require_write_system(current_user: User = Depends(get_page_user)) -> User:
+    from core.auth.permissions import WRITE_SYSTEM
+    if not (current_user.permissions & WRITE_SYSTEM):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return current_user
+
+
+@router.get("/admin/", name="admin_overview_page")
+@webpage.page("admin/index.html")
+async def admin_overview(
+    request: Request,
+    current_user: User = Depends(_require_admin),
+):
+    total = await User.count()
+    return {
+        **_admin_context(current_user),
+        "user_count": total,
+        "admin_section": "overview",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.get("/admin/users/", name="admin_users_list_page")
+@webpage.page("admin/users_list.html")
+async def admin_users_list(
+    request: Request,
+    page: int = 1,
+    page_size: int = 20,
+    current_user: User = Depends(_require_manage_users),
+):
+    from core.auth.permissions import ROLE_PRESETS
+    skip = (page - 1) * page_size
+    total = await User.count()
+    users = await User.find_all().skip(skip).limit(page_size).to_list()
+    return {
+        **_admin_context(current_user),
+        "users": [
+            {
+                "id": str(u.id),
+                "username": u.username,
+                "display_name": u.display_name,
+                "permissions": u.permissions,
+                "tags": u.tags,
+            }
+            for u in users
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "presets": ROLE_PRESETS,
+        "admin_section": "users",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.get("/admin/users/new", name="admin_user_new_page")
+@webpage.page("admin/user_form.html")
+async def admin_user_new(
+    request: Request,
+    current_user: User = Depends(_require_manage_users),
+):
+    from core.auth.permissions import ROLE_PRESETS
+    schema = _build_schema()
+    return {
+        **_admin_context(current_user),
+        "edit_user": None,
+        "initial_levels": {e["domain"]: "none" for e in schema},
+        "schema": schema,
+        "presets": ROLE_PRESETS,
+        "admin_section": "users",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.post("/admin/users/new")
+@webpage.redirect(status_code=302)
+async def admin_user_new_submit(
+    request: Request,
+    username: str = Form(...),
+    display_name: str = Form(...),
+    password: str = Form(...),
+    permissions: int = Form(default=0),
+    tags: str = Form(default=""),
+    current_user: User = Depends(_require_manage_users),
+):
+    from core.auth.password import hash_password
+    existing = await User.find_one(User.username == username)
+    if existing:
+        error_url = request.url_for("admin_user_new_page").include_query_params(error="使用者名稱已存在")
+        return (str(error_url), 302)
+    tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+    user = User(
+        username=username,
+        hashed_password=hash_password(password),
+        display_name=display_name,
+        permissions=permissions,
+        tags=tags_list,
+    )
+    await user.insert()
+    success_url = request.url_for("admin_users_list_page").include_query_params(success="使用者已建立")
+    return (str(success_url), 302)
+
+
+@router.get("/admin/users/{user_id}/edit", name="admin_user_edit_page")
+@webpage.page("admin/user_form.html")
+async def admin_user_edit(
+    request: Request,
+    user_id: str,
+    current_user: User = Depends(_require_manage_users),
+):
+    from core.auth.permissions import ROLE_PRESETS
+    user = await User.get(user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    schema = _build_schema()
+    return {
+        **_admin_context(current_user),
+        "edit_user": {
+            "id": str(user.id),
+            "username": user.username,
+            "display_name": user.display_name,
+            "permissions": user.permissions,
+            "tags": user.tags,
+        },
+        "initial_levels": _compute_initial_levels(user.permissions, schema),
+        "schema": schema,
+        "presets": ROLE_PRESETS,
+        "admin_section": "users",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.post("/admin/users/{user_id}/edit")
+@webpage.redirect(status_code=302)
+async def admin_user_edit_submit(
+    request: Request,
+    user_id: str,
+    display_name: str = Form(...),
+    permissions: int = Form(default=0),
+    tags: str = Form(default=""),
+    new_password: str = Form(default=""),
+    current_user: User = Depends(_require_manage_users),
+):
+    from core.auth.password import hash_password
+    user = await User.get(user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.display_name = display_name
+    user.permissions = permissions
+    user.tags = [t.strip() for t in tags.split(",") if t.strip()]
+    if new_password:
+        user.hashed_password = hash_password(new_password)
+    await user.save()
+    success_url = request.url_for("admin_users_list_page").include_query_params(success="使用者已更新")
+    return (str(success_url), 302)
+
+
+@router.get("/admin/system/", name="admin_system_page")
+@webpage.page("admin/system_settings.html")
+async def admin_system_settings(
+    request: Request,
+    current_user: User = Depends(_require_write_system),
+):
+    config = getattr(request.app.state, "system_config", None)
+    return {
+        **_admin_context(current_user),
+        "config": config,
+        "admin_section": "system",
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.post("/admin/system/")
+@webpage.redirect(status_code=302)
+async def admin_system_settings_submit(
+    request: Request,
+    site_name: str = Form(...),
+    admin_email: str = Form(default=""),
+    current_user: User = Depends(_require_write_system),
+):
+    from core.system.models import SystemConfig
+    config = await SystemConfig.find_one()
+    if config:
+        config.site_name = site_name
+        config.admin_email = admin_email
+        await config.save()
+        request.app.state.system_config = config
+        webpage.webpage_context_update({"site_name": site_name})
+    success_url = request.url_for("admin_system_page").include_query_params(success="設定已儲存")
+    return (str(success_url), 302)

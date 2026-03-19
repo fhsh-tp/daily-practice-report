@@ -78,3 +78,43 @@ SITE_ADMIN = (
     | Permission.READ_SYSTEM
     | Permission.WRITE_SYSTEM
 )  # 0xEFF
+
+# Domain schema — maps each domain to its read and write flag groups.
+# The admin UI reads this to dynamically render the permission matrix.
+# When adding new Permission flags, add them here so they appear in the UI.
+PERMISSION_SCHEMA: list[dict] = [
+    {
+        "domain": "Self",
+        "read":  Permission.READ_OWN_PROFILE | Permission.SUBMIT_TASK | Permission.CHECKIN,
+        "write": Permission.WRITE_OWN_PROFILE,
+    },
+    {
+        "domain": "Class",
+        "read":  Permission.READ_CLASS,
+        "write": Permission.MANAGE_CLASS,
+    },
+    {
+        "domain": "Task",
+        "read":  Permission.READ_TASKS,
+        "write": Permission.MANAGE_TASKS,
+    },
+    {
+        "domain": "User",
+        "read":  Permission.READ_USERS,
+        "write": Permission.MANAGE_USERS,
+    },
+    {
+        "domain": "System",
+        "read":  Permission.READ_SYSTEM,
+        "write": Permission.WRITE_SYSTEM,
+    },
+]
+
+# Named presets list — used by the admin UI preset selector.
+ROLE_PRESETS: list[dict] = [
+    {"name": "STUDENT",    "value": int(STUDENT)},
+    {"name": "TEACHER",    "value": int(TEACHER)},
+    {"name": "USER_ADMIN", "value": int(USER_ADMIN)},
+    {"name": "SYS_ADMIN",  "value": int(SYS_ADMIN)},
+    {"name": "SITE_ADMIN", "value": int(SITE_ADMIN)},
+]

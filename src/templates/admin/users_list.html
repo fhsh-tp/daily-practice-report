@@ -1,0 +1,220 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}使用者管理 — {{ webpage.site_name }}{% endblock %}
+{% block admin_title %}使用者管理{% endblock %}
+{% block admin_subtitle %}共 {{ total }} 位使用者{% endblock %}
+
+{% block admin_content %}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+
+  {# Toolbar #}
+  <div class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+    <a href="/pages/admin/users/new"
+       class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors duration-150">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      新增使用者
+    </a>
+
+    {# Bulk action toolbar (shown when rows selected) #}
+    <div id="bulk-toolbar" class="hidden flex items-center gap-2">
+      <span id="selected-count" class="text-sm text-gray-500 dark:text-gray-400"></span>
+      <button onclick="bulkChangePermissions()"
+              class="px-3 py-1.5 text-sm font-medium text-brand-700 dark:text-brand-400 border border-brand-300 dark:border-brand-700 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors duration-150">
+        批次改權限
+      </button>
+      <button onclick="bulkDelete()"
+              class="px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150">
+        批次刪除
+      </button>
+    </div>
+
+    {# CSV import #}
+    <label class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+      </svg>
+      匯入 CSV
+      <input type="file" accept=".csv" class="hidden" id="csv-import-input" onchange="importCSV(this)">
+    </label>
+  </div>
+
+  {# Table #}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+          <th class="w-10 px-4 py-3">
+            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"
+                   class="rounded border-gray-300 dark:border-gray-600 text-brand-600 cursor-pointer">
+          </th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">使用者名稱</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">顯示名稱</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">權限</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">標籤</th>
+          <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for user in users %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100" data-user-id="{{ user.id }}">
+          <td class="px-4 py-3">
+            <input type="checkbox" class="row-checkbox rounded border-gray-300 dark:border-gray-600 text-brand-600 cursor-pointer"
+                   value="{{ user.id }}" onchange="updateBulkToolbar()">
+          </td>
+          <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ user.username }}</td>
+          <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ user.display_name }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-100 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300">
+              {{ user.permissions }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+            {% if user.tags %}
+              {% for tag in user.tags %}
+              <span class="inline-block px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 mr-1">{{ tag }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="/pages/admin/users/{{ user.id }}/edit"
+               class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">編輯</a>
+            <button onclick="deleteUser('{{ user.id }}', '{{ user.username }}')"
+                    class="text-red-600 dark:text-red-400 hover:underline text-xs font-medium cursor-pointer">刪除</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">尚無使用者</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  {% if total > page_size %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-800">
+    <span class="text-sm text-gray-500 dark:text-gray-400">第 {{ page }} 頁，共 {{ total }} 筆</span>
+    <div class="flex gap-2">
+      {% if page > 1 %}
+      <a href="?page={{ page - 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">上一頁</a>
+      {% endif %}
+      {% if (page * page_size) < total %}
+      <a href="?page={{ page + 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">下一頁</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{# Bulk permissions modal #}
+<div id="bulk-perm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+    <h3 class="font-heading font-semibold text-gray-900 dark:text-gray-100 mb-4">批次更新權限</h3>
+    <select id="bulk-preset-select"
+            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 mb-4">
+      {% for preset in presets %}
+      <option value="{{ preset.value }}">{{ preset.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="flex gap-3 justify-end">
+      <button onclick="document.getElementById('bulk-perm-modal').classList.add('hidden')"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">取消</button>
+      <button onclick="confirmBulkPermissions()"
+              class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg cursor-pointer">確認</button>
+    </div>
+  </div>
+</div>
+
+{# Import result toast #}
+<div id="import-toast" class="hidden fixed bottom-4 right-4 z-50 max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-4">
+  <p id="import-toast-msg" class="text-sm text-gray-700 dark:text-gray-300"></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+}
+
+function updateBulkToolbar() {
+  const ids = getSelectedIds();
+  const toolbar = document.getElementById('bulk-toolbar');
+  const count = document.getElementById('selected-count');
+  if (ids.length > 0) {
+    toolbar.classList.remove('hidden');
+    toolbar.classList.add('flex');
+    count.textContent = `已選 ${ids.length} 筆`;
+  } else {
+    toolbar.classList.add('hidden');
+    toolbar.classList.remove('flex');
+  }
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.row-checkbox').forEach(box => { box.checked = cb.checked; });
+  updateBulkToolbar();
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`確定要刪除使用者「${username}」嗎？`)) return;
+  const resp = await fetch(`/admin/users/${id}`, { method: 'DELETE' });
+  if (resp.status === 204) {
+    document.querySelector(`[data-user-id="${id}"]`).remove();
+  } else {
+    alert('刪除失敗');
+  }
+}
+
+function bulkDelete() {
+  const ids = getSelectedIds();
+  if (ids.length === 0) return;
+  if (!confirm(`確定要刪除選取的 ${ids.length} 位使用者嗎？`)) return;
+  fetch('/admin/users/bulk', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  }).then(r => r.json()).then(data => {
+    location.reload();
+  });
+}
+
+function bulkChangePermissions() {
+  const ids = getSelectedIds();
+  if (ids.length === 0) return;
+  document.getElementById('bulk-perm-modal').classList.remove('hidden');
+}
+
+function confirmBulkPermissions() {
+  const ids = getSelectedIds();
+  const permissions = parseInt(document.getElementById('bulk-preset-select').value);
+  fetch('/admin/users/bulk', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, permissions }),
+  }).then(() => location.reload());
+}
+
+async function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  const resp = await fetch('/admin/users/import', { method: 'POST', body: formData });
+  const data = await resp.json();
+  const toast = document.getElementById('import-toast');
+  const msg = document.getElementById('import-toast-msg');
+  const failCount = data.failed ? data.failed.length : 0;
+  msg.textContent = `匯入完成：成功 ${data.success} 筆${failCount > 0 ? `，失敗 ${failCount} 筆` : ''}`;
+  toast.classList.remove('hidden');
+  setTimeout(() => { toast.classList.add('hidden'); location.reload(); }, 3000);
+  input.value = '';
+}
+</script>
+{% endblock %}
