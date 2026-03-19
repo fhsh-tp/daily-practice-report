@@ -1,35 +1,59 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>系統初始設定</title>
-  <style>
-    body { font-family: sans-serif; max-width: 480px; margin: 80px auto; padding: 0 16px; }
-    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; }
-    label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
-    input { width: 100%; padding: 8px; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
-    button:hover { background: #1d4ed8; }
-    .error { color: #dc2626; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>系統初始設定</h1>
-  {% if error %}
-  <p class="error">{{ error }}</p>
-  {% endif %}
-  <form method="post" action="/setup">
-    <label for="site_name">網站名稱</label>
-    <input type="text" id="site_name" name="site_name" required placeholder="例：每日訓練系統">
+{% extends "shared/base.html" %}
+{% block title %}系統初始設定{% endblock %}
 
-    <label for="admin_username">管理員帳號</label>
-    <input type="text" id="admin_username" name="admin_username" required placeholder="admin">
+{% block content %}
+<div class="min-h-[calc(100vh-8rem)] flex items-center justify-center py-8">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 p-8">
+      <div class="mb-8 text-center">
+        <div class="w-14 h-14 rounded-xl bg-brand-600 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.764-.383.929-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+        </div>
+        <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">系統初始設定</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">設定網站基本資訊與管理員帳號</p>
+      </div>
 
-    <label for="admin_password">管理員密碼</label>
-    <input type="password" id="admin_password" name="admin_password" required>
+      {% if error %}
+      <div class="mb-6 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
+        <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+        <p class="text-sm text-red-700 dark:text-red-400">{{ error }}</p>
+      </div>
+      {% endif %}
 
-    <button type="submit">完成設定</button>
-  </form>
-</body>
-</html>
+      <form method="post" action="/setup" class="space-y-5">
+        <div>
+          <label for="site_name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">網站名稱</label>
+          <input type="text" id="site_name" name="site_name" required
+                 placeholder="例：每日訓練系統"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+        </div>
+
+        <div>
+          <label for="admin_username" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">管理員帳號</label>
+          <input type="text" id="admin_username" name="admin_username" required
+                 placeholder="admin"
+                 autocomplete="username"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+        </div>
+
+        <div>
+          <label for="admin_password" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">管理員密碼</label>
+          <input type="password" id="admin_password" name="admin_password" required
+                 autocomplete="new-password"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+        </div>
+
+        <button type="submit"
+                class="w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-2.5 text-sm transition-colors duration-150 cursor-pointer mt-2">
+          完成設定
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

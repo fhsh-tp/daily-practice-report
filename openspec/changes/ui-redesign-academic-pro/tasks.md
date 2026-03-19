@@ -1,21 +1,21 @@
 ## 1. 基礎設計系統（shared/base.html）
 
-- [ ] 1.1 移除 Pico CSS CDN，加入 Tailwind CSS Play CDN；使用 Tailwind CSS replaces Pico CSS as the styling foundation
-- [ ] 1.2 在 `<head>` 最頂端加入 FOUC 防護 inline script，實作 Light and Dark mode controlled by `<html>` class（讀取 `localStorage.theme` 並立即套用 `dark` class）；設計 Token 集中在 base.html 的 `tailwind.config` 腳本
-- [ ] 1.3 加入 Google Fonts（Poppins + Open Sans）並在 `tailwind.config` 中配置 `fontFamily`；實作 Typography system uses Poppins and Open Sans
-- [ ] 1.4 在 `tailwind.config` 腳本中定義 `brand` 色彩 token（violet 50–950）與 `darkMode: 'class'`；確保使用 Tailwind CSS Play CDN 而非 PostCSS 構建
-- [ ] 1.5 實作 RWD navigation adapts to three breakpoints：Desktop sidebar（`lg:`）、Tablet top navbar（`md:`）、Mobile bottom tab bar（預設）；完成 RWD 導覽：Mobile Bottom tab / Tablet Top nav / Desktop Sidebar 設計
-- [ ] 1.6 在 sidebar 加入 active 狀態樣式 `bg-brand-50 dark:bg-brand-900/20 text-brand-700 font-semibold`
-- [ ] 1.7 加入 Dark mode 採用 `class` 策略而非 `media` 策略的主題切換按鈕，寫入 `localStorage.theme` 並更新 `<html>` class
-- [ ] 1.8 確認所有 class 均為完整字串，不使用字串拼接；遵守 All class attribute strings are written in full 原則
+- [x] 1.1 移除 Pico CSS CDN，加入 Tailwind CSS Play CDN；使用 Tailwind CSS replaces Pico CSS as the styling foundation
+- [x] 1.2 在 `<head>` 最頂端加入 FOUC 防護 inline script，實作 Light and Dark mode controlled by `<html>` class（讀取 `localStorage.theme` 並立即套用 `dark` class）；設計 Token 集中在 base.html 的 `tailwind.config` 腳本
+- [x] 1.3 加入 Google Fonts（Poppins + Open Sans）並在 `tailwind.config` 中配置 `fontFamily`；實作 Typography system uses Poppins and Open Sans
+- [x] 1.4 在 `tailwind.config` 腳本中定義 `brand` 色彩 token（violet 50–950）與 `darkMode: 'class'`；確保使用 Tailwind CSS Play CDN 而非 PostCSS 構建
+- [x] 1.5 實作 RWD navigation adapts to three breakpoints：Desktop sidebar（`lg:`）、Tablet top navbar（`md:`）、Mobile bottom tab bar（預設）；完成 RWD 導覽：Mobile Bottom tab / Tablet Top nav / Desktop Sidebar 設計
+- [x] 1.6 在 sidebar 加入 active 狀態樣式 `bg-brand-50 dark:bg-brand-900/20 text-brand-700 font-semibold`
+- [x] 1.7 加入 Dark mode 採用 `class` 策略而非 `media` 策略的主題切換按鈕，寫入 `localStorage.theme` 並更新 `<html>` class
+- [x] 1.8 確認所有 class 均為完整字串，不使用字串拼接；遵守 All class attribute strings are written in full 原則
 
 ## 2. setup.html 遷移
 
-- [ ] 2.1 將 `setup.html` 改為繼承 `shared/base.html`，移除獨立 inline CSS；完成 setup.html inherits shared/base.html
+- [x] 2.1 將 `setup.html` 改為繼承 `shared/base.html`，移除獨立 inline CSS；完成 setup.html inherits shared/base.html
 
 ## 3. 登入頁面（login.html）
 
-- [ ] 3.1 重新設計 `login.html`：置中卡片佈局，含行內錯誤訊息顯示（`?error=` 參數）
+- [x] 3.1 重新設計 `login.html`：置中卡片佈局，含行內錯誤訊息顯示（`?error=` 參數）
 
 ## 4. Dashboard（student/dashboard.html）
 
