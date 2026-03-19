@@ -21,9 +21,9 @@
 
 ## 5. 教師簽到設定頁面 — 教師簽到設定頁：讀取現有 config 並允許更新
 
-- [ ] 5.1 在 `tasks/checkin/router.py` 新增 `GET /pages/teacher/classes/{class_id}/checkin-config` page route，查詢現有 `CheckinConfig`（若無則回傳預設值），傳入 template context（Teacher configures check-in schedule via web UI）
-- [ ] 5.2 建立 `templates/teacher/checkin_config.html`：顯示目前設定的開放星期（核取方塊）與時間窗口（時間輸入），送出表單呼叫 `POST /classes/{class_id}/checkin-config`（Teacher views current check-in configuration；Teacher updates active weekdays）
-- [ ] 5.3 在 `checkin_config.html` 頁面下方新增單日 override 區塊：輸入日期、是否啟用、可選時間窗口，送出呼叫 `POST /classes/{class_id}/checkin-overrides`（Teacher sets a single-day check-in override via web UI；Teacher disables check-in for a specific date）
-- [ ] 5.4 在 `teacher/class_members.html` 的教師工具列新增「簽到設定」連結至 `/pages/teacher/classes/{class_id}/checkin-config`
-- [ ] 5.5 在 `student/dashboard.html` 的教師工具列中同步新增「簽到設定」連結
-- [ ] 5.6 新增測試：GET checkin-config page 回傳 HTTP 200；未設定時使用預設值
+- [x] 5.1 在 `tasks/checkin/router.py` 新增 `GET /pages/teacher/classes/{class_id}/checkin-config` page route，查詢現有 `CheckinConfig`（若無則回傳預設值），傳入 template context（Teacher configures check-in schedule via web UI）
+- [x] 5.2 建立 `templates/teacher/checkin_config.html`：顯示目前設定的開放星期（核取方塊）與時間窗口（時間輸入），送出表單呼叫 `POST /classes/{class_id}/checkin-config`（Teacher views current check-in configuration；Teacher updates active weekdays）
+- [x] 5.3 在 `checkin_config.html` 頁面下方新增單日 override 區塊：輸入日期、是否啟用、可選時間窗口，送出呼叫 `POST /classes/{class_id}/checkin-overrides`（Teacher sets a single-day check-in override via web UI；Teacher disables check-in for a specific date）
+- [x] 5.4 在 `teacher/class_members.html` 的教師工具列新增「簽到設定」連結至 `/pages/teacher/classes/{class_id}/checkin-config`
+- [x] 5.5 在 `student/dashboard.html` 的教師工具列中同步新增「簽到設定」連結
+- [x] 5.6 新增測試：GET checkin-config page 回傳 HTTP 200；未設定時使用預設值

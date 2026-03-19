@@ -13,7 +13,7 @@ from shared.webpage import webpage
 def _collect_document_models():
     from core.users.models import User
     from core.classes.models import Class, ClassMembership
-    from tasks.templates.models import TaskTemplate, TaskAssignment
+    from tasks.templates.models import TaskTemplate, TaskAssignment, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
     from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord
     from gamification.points.models import PointTransaction, ClassPointConfig
@@ -23,7 +23,7 @@ def _collect_document_models():
     from core.system.models import SystemConfig
     return [
         User, Class, ClassMembership,
-        TaskTemplate, TaskAssignment, TaskSubmission,
+        TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
         CheckinConfig, DailyCheckinOverride, CheckinRecord,
         PointTransaction, ClassPointConfig,
         BadgeDefinition, BadgeAward,
