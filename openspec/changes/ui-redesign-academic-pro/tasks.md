@@ -19,11 +19,11 @@
 
 ## 4. Dashboard（student/dashboard.html）
 
-- [ ] 4.1 實作 Widget Grid（積分/徽章/連續天數/任務數 widget）；完成 Dashboard 採用三層複合佈局 — Widget Grid 層
-- [ ] 4.2 實作班級 Card Grid，含今日簽到/提交狀態與快速動作連結；完成 Dashboard is the unified authenticated entry point 的班級卡片區塊
-- [ ] 4.3 實作教師視角的 Widget Grid（學生總數、今日簽到數、提交數）與班級卡片教師工具列
-- [ ] 4.4 實作 Activity Feed 時間軸（最多 20 筆最近活動）；完成 Dashboard 採用三層複合佈局 — Activity Feed 層
-- [ ] 4.5 實作 Dashboard displays gamified badge strip（水平可捲動徽章條，未解鎖灰化）
+- [x] 4.1 實作 Widget Grid（積分/徽章/連續天數/任務數 widget）；完成 Dashboard 採用三層複合佈局 — Widget Grid 層
+- [x] 4.2 實作班級 Card Grid，含今日簽到/提交狀態與快速動作連結；完成 Dashboard is the unified authenticated entry point 的班級卡片區塊
+- [x] 4.3 實作教師視角的 Widget Grid（學生總數、今日簽到數、提交數）與班級卡片教師工具列
+- [x] 4.4 實作 Activity Feed 時間軸（最多 20 筆最近活動）；完成 Dashboard 採用三層複合佈局 — Activity Feed 層
+- [x] 4.5 實作 Dashboard displays gamified badge strip（水平可捲動徽章條，未解鎖灰化）
 
 ## 5. 任務提交頁面（student/submit_task.html）
 
