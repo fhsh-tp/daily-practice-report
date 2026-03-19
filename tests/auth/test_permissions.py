@@ -120,12 +120,11 @@ def test_role_presets_list_contains_all_presets():
 
 # --- PERMISSION_SCHEMA ---
 
-def test_permission_schema_has_five_domains():
-    """PERMISSION_SCHEMA must contain exactly five domain entries."""
+def test_permission_schema_has_expected_domains():
+    """PERMISSION_SCHEMA must contain the expected domain entries."""
     from core.auth.permissions import PERMISSION_SCHEMA
-    assert len(PERMISSION_SCHEMA) == 5
     domains = {entry["domain"] for entry in PERMISSION_SCHEMA}
-    assert domains == {"Self", "Class", "Task", "User", "System"}
+    assert domains == {"Self", "Class", "ClassManager", "Task", "User", "System"}
 
 
 def test_permission_schema_entries_have_required_keys():
@@ -145,9 +144,11 @@ def test_permission_schema_read_write_are_permissions():
         assert isinstance(entry["write"], Permission)
 
 
-def test_permission_schema_class_domain_includes_both_class_flags():
-    """Class domain write should include MANAGE_OWN_CLASS and MANAGE_ALL_CLASSES."""
+def test_permission_schema_class_domains_split():
+    """Class domain has MANAGE_OWN_CLASS; ClassManager domain has MANAGE_ALL_CLASSES."""
     from core.auth.permissions import PERMISSION_SCHEMA, Permission
     class_entry = next(e for e in PERMISSION_SCHEMA if e["domain"] == "Class")
+    cm_entry = next(e for e in PERMISSION_SCHEMA if e["domain"] == "ClassManager")
     assert class_entry["write"] & Permission.MANAGE_OWN_CLASS
-    assert class_entry["write"] & Permission.MANAGE_ALL_CLASSES
+    assert not (class_entry["write"] & Permission.MANAGE_ALL_CLASSES)
+    assert cm_entry["write"] & Permission.MANAGE_ALL_CLASSES

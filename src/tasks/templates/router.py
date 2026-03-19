@@ -153,6 +153,7 @@ async def class_members_page(
         "class_id": class_id,
         "class_name": cls.name,
         "invite_code": cls.invite_code,
+        "is_archived": cls.is_archived,
         "members": members,
     }
 

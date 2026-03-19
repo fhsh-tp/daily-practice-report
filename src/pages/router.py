@@ -75,10 +75,16 @@ async def dashboard_page(
     now = datetime.now(timezone.utc)
     today = date.today()
 
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    can_manage_class = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+
     classes = []
     for m in memberships:
         cls = await Class.get(m.class_id)
         if cls is None:
+            continue
+        # Students don't see archived classes; managers/teachers do
+        if cls.is_archived and not can_manage_class:
             continue
 
         checkin_result = await is_checkin_open(m.class_id, now)
@@ -92,6 +98,8 @@ async def dashboard_page(
         classes.append({
             "class_id": m.class_id,
             "class_name": cls.name,
+            "is_archived": cls.is_archived,
+            "owner_id": cls.owner_id,
             "checkin_open": checkin_result.is_open,
             "already_checked_in": existing_checkin is not None,
             "closes_at": checkin_result.closes_at.isoformat() if checkin_result.closes_at else None,
@@ -99,11 +107,10 @@ async def dashboard_page(
             "today_template": today_template,
         })
 
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
     return {
         "current_user": current_user,
         "classes": classes,
-        "can_manage_class": bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)),
+        "can_manage_class": can_manage_class,
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
@@ -122,6 +129,7 @@ def _build_schema():
             "domain": e["domain"],
             "label": e.get("label", e["domain"]),
             "description": e.get("description", ""),
+            "hide_read": e.get("hide_read", False),
             "read": int(e["read"]),
             "write": int(e["write"]),
             "all": int(e["read"]) | int(e["write"]),

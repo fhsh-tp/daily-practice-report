@@ -101,10 +101,18 @@ PERMISSION_SCHEMA: list[dict] = [
     },
     {
         "domain": "Class",
-        "label": "班級",
-        "description": "只讀：查看班級　讀寫：＋管理自己的班級（MANAGE_OWN_CLASS）＋管理所有班級（MANAGE_ALL_CLASSES）",
+        "label": "班級（教師）",
+        "description": "只讀：查看班級　讀寫：＋建立班級、管理自己班級成員與邀請碼",
         "read":  Permission.READ_CLASS,
-        "write": Permission.MANAGE_OWN_CLASS | Permission.MANAGE_ALL_CLASSES,
+        "write": Permission.MANAGE_OWN_CLASS,
+    },
+    {
+        "domain": "ClassManager",
+        "label": "班級（全局管理）",
+        "description": "讀寫：可管理系統內所有班級（不限擁有者），適用 Class Manager 角色",
+        "read":  Permission(0),
+        "write": Permission.MANAGE_ALL_CLASSES,
+        "hide_read": True,
     },
     {
         "domain": "Task",

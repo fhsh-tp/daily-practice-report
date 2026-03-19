@@ -39,8 +39,8 @@ async def _make_user(permissions_val: int, username: str = "admin"):
     return token
 
 
-async def test_permission_schema_endpoint_returns_five_domains(db, app):
-    """GET /admin/permissions/schema must return 5 domain entries."""
+async def test_permission_schema_endpoint_returns_expected_domains(db, app):
+    """GET /admin/permissions/schema must return the expected domain entries."""
     from core.auth.permissions import SITE_ADMIN
     token = await _make_user(int(SITE_ADMIN))
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -48,9 +48,8 @@ async def test_permission_schema_endpoint_returns_five_domains(db, app):
         resp = await ac.get("/admin/permissions/schema")
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 5
     domains = {entry["domain"] for entry in data}
-    assert domains == {"Self", "Class", "Task", "User", "System"}
+    assert domains == {"Self", "Class", "ClassManager", "Task", "User", "System"}
 
 
 async def test_permission_schema_endpoint_has_read_write_fields(db, app):

@@ -105,8 +105,8 @@ async def join_class_by_id(user: User, class_id: str) -> ClassMembership:
 
 
 async def get_public_classes() -> list[Class]:
-    """Return all public classes."""
-    return await Class.find(Class.visibility == "public").to_list()
+    """Return all public non-archived classes."""
+    return await Class.find(Class.visibility == "public", Class.is_archived == False).to_list()
 
 
 async def get_class_members(class_id: str) -> list[ClassMembership]:

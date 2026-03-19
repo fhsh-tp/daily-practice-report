@@ -166,3 +166,21 @@ async def batch_invite(
     await _require_manage(class_id, user)
     added = await batch_invite_students(class_id, body.user_ids)
     return {"added": added}
+
+
+@router.patch("/{class_id}/archive")
+async def archive_class(class_id: str, user: User = Depends(get_current_user)):
+    """Archive a class. Only the class owner or a global class manager can do this."""
+    cls = await _require_manage(class_id, user)
+    cls.is_archived = True
+    await cls.save()
+    return {"id": str(cls.id), "is_archived": True}
+
+
+@router.patch("/{class_id}/unarchive")
+async def unarchive_class(class_id: str, user: User = Depends(get_current_user)):
+    """Unarchive a class."""
+    cls = await _require_manage(class_id, user)
+    cls.is_archived = False
+    await cls.save()
+    return {"id": str(cls.id), "is_archived": False}

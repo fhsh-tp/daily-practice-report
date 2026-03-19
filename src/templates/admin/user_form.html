@@ -141,14 +141,19 @@
       <div class="space-y-3">
         {% for domain in schema %}
         {% set level = initial_levels[domain.domain] %}
-        <div class="flex items-start gap-4">
-          <div class="w-28 shrink-0 pt-0.5">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1 w-36 shrink-0">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ domain.label }}</span>
             {% if domain.description %}
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ domain.description }}</p>
+            <div class="relative group">
+              <button type="button" class="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs flex items-center justify-center leading-none cursor-default shrink-0">?</button>
+              <div class="absolute left-6 top-0 z-20 hidden group-hover:block w-64 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+                {{ domain.description }}
+              </div>
+            </div>
             {% endif %}
           </div>
-          <div class="flex gap-2 pt-0.5" data-domain="{{ domain.domain }}" data-read="{{ domain.read }}" data-write="{{ domain.write }}">
+          <div class="flex gap-2" data-domain="{{ domain.domain }}" data-read="{{ domain.read }}" data-write="{{ domain.write }}">
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="perm_{{ domain.domain }}" value="none"
                      class="domain-radio text-brand-600 cursor-pointer"
@@ -156,6 +161,7 @@
                      onchange="recomputePermissions()">
               <span class="text-sm text-gray-600 dark:text-gray-400">無</span>
             </label>
+            {% if not domain.hide_read %}
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="perm_{{ domain.domain }}" value="read"
                      class="domain-radio text-brand-600 cursor-pointer"
@@ -163,12 +169,13 @@
                      onchange="recomputePermissions()">
               <span class="text-sm text-gray-600 dark:text-gray-400">只讀</span>
             </label>
+            {% endif %}
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" name="perm_{{ domain.domain }}" value="readwrite"
                      class="domain-radio text-brand-600 cursor-pointer"
                      {% if level == 'readwrite' %}checked{% endif %}
                      onchange="recomputePermissions()">
-              <span class="text-sm text-gray-600 dark:text-gray-400">讀寫</span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{% if domain.hide_read %}啟用{% else %}讀寫{% endif %}</span>
             </label>
           </div>
         </div>
