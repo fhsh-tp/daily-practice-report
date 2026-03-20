@@ -98,11 +98,19 @@ async def dashboard_page(
             ClassMembership.class_id == m.class_id
         ).count()
 
+        from core.users.models import User as UserModel
+        try:
+            owner = await UserModel.get(cls.owner_id)
+            owner_display_name = owner.display_name if owner else ""
+        except Exception:
+            owner_display_name = ""
+
         classes.append({
             "class_id": m.class_id,
             "class_name": cls.name,
             "is_archived": cls.is_archived,
             "owner_id": cls.owner_id,
+            "owner_display_name": owner_display_name,
             "checkin_open": checkin_result.is_open,
             "already_checked_in": existing_checkin is not None,
             "closes_at": checkin_result.closes_at.isoformat() if checkin_result.closes_at else None,

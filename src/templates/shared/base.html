@@ -126,8 +126,8 @@
       {% endif %}
       {% endfor %}
       {% else %}
-      {# No classes yet — show a create shortcut for teachers #}
-      {% if can_manage_class %}
+      {# No classes yet — show a create shortcut for teachers (not all-class managers) #}
+      {% if can_manage_class and not can_manage_all_classes %}
       <a href="{{ url_for('dashboard_page') }}"
          onclick="event.preventDefault(); document.dispatchEvent(new CustomEvent('open-create-class'))"
          class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150">
