@@ -467,7 +467,7 @@ async def admin_classes_list(
 
     return {
         **_admin_context(current_user),
-        "classes": classes,
+        "class_list": classes,
         "total": total,
         "page": page,
         "page_size": page_size,
