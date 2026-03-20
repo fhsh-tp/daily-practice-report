@@ -857,6 +857,42 @@ tests:
 -->
 
 ---
+### Requirement: Email is required when creating a new user account
+
+The system SHALL require a valid email address when creating a new user account.
+
+#### Scenario: User creation fails without email
+
+- **WHEN** an admin submits the create user form without an email address
+- **THEN** the system SHALL return a validation error and SHALL NOT create the account
+
+#### Scenario: User creation succeeds with email
+
+- **WHEN** an admin submits the create user form with a valid email address
+- **THEN** the system SHALL create the account with the provided email
+
+<!-- @trace
+source: user-profile-gravatar
+updated: 2026-03-20
+-->
+
+
+<!-- @trace
+source: user-profile-gravatar
+updated: 2026-03-20
+code:
+  - src/shared/webpage.py
+  - src/shared/gravatar.py
+  - src/pages/router.py
+  - src/templates/admin/user_form.html
+  - src/templates/shared/base.html
+  - src/templates/settings.html
+tests:
+  - tests/test_settings.py
+  - tests/test_gravatar_filter.py
+-->
+
+---
 ### Requirement: Browser-based logout redirects to login
 
 The system SHALL accept `POST /auth/logout` and redirect to `GET /pages/login` after clearing the session cookie.
