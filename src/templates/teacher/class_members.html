@@ -7,11 +7,11 @@
     <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">班級成員管理</h1>
     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">班級：<strong class="text-gray-700 dark:text-gray-300">{{ class_name }}</strong></p>
   </div>
-  <a href="/pages/teacher/classes/{{ class_id }}/templates"
+  <a href="{{ url_for('templates_list_page', class_id=class_id) }}"
      class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
     任務模板
   </a>
-  <a href="/pages/teacher/classes/{{ class_id }}/checkin-config"
+  <a href="{{ url_for('checkin_config_page', class_id=class_id) }}"
      class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
     簽到設定
   </a>

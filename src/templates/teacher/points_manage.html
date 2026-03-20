@@ -10,7 +10,7 @@
 {# ── Points config card ─────────────────────────────────────────────────── #}
 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
   <h2 class="font-heading font-semibold text-base text-gray-800 dark:text-gray-200 mb-4">積分設定</h2>
-  <form method="post" action="/classes/{{ class_id }}/point-config">
+  <form method="post" action="{{ url_for('update_point_config', class_id=class_id) }}">
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">簽到積分</label>
@@ -68,7 +68,7 @@
           </td>
           <td class="px-5 py-3.5">
             <form method="post"
-                  action="/classes/{{ class_id }}/students/{{ m.student_id }}/point-revoke"
+                  action="{{ url_for('revoke_student_points', class_id=class_id, student_id=m.student_id) }}"
                   class="flex items-center gap-2 flex-wrap">
               <input type="number" name="amount" placeholder="積分" min="1" max="{{ m.balance }}" required
                      class="w-20 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">

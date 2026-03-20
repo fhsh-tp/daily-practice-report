@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-lg mx-auto">
   <div class="mb-6">
-    <a href="/pages/teacher/classes/{{ class_id }}/templates"
+    <a href="{{ url_for('templates_list_page', class_id=class_id) }}"
        class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 mb-3">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -109,7 +109,7 @@
     <div id="result-msg" class="hidden px-4 py-3 rounded-lg text-sm"></div>
 
     <div class="flex items-center justify-between gap-4 pt-1">
-      <a href="/pages/teacher/classes/{{ class_id }}/templates"
+      <a href="{{ url_for('templates_list_page', class_id=class_id) }}"
          class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150">
         取消
       </a>

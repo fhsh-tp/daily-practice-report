@@ -19,7 +19,7 @@
     </div>
     <p class="text-3xl font-heading font-bold text-gray-900 dark:text-gray-100">{{ user_count }}</p>
     {% if can_manage_users %}
-    <a href="/pages/admin/users/" class="mt-3 inline-block text-xs text-brand-600 dark:text-brand-400 hover:underline">管理使用者 →</a>
+    <a href="{{ url_for('admin_users_list_page') }}" class="mt-3 inline-block text-xs text-brand-600 dark:text-brand-400 hover:underline">管理使用者 →</a>
     {% endif %}
   </div>
 
@@ -35,7 +35,7 @@
     </div>
     <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">{{ webpage.site_name }}</p>
     {% if is_sys_admin %}
-    <a href="/pages/admin/system/" class="mt-3 inline-block text-xs text-brand-600 dark:text-brand-400 hover:underline">系統設定 →</a>
+    <a href="{{ url_for('admin_system_page') }}" class="mt-3 inline-block text-xs text-brand-600 dark:text-brand-400 hover:underline">系統設定 →</a>
     {% endif %}
   </div>
 

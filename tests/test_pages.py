@@ -13,13 +13,19 @@ from core.auth.permissions import STUDENT, TEACHER
 def _make_app():
     """Build a minimal FastAPI app with all page-related routers."""
     from core.auth.router import router as auth_router
+    from gamification.badges.router import router as badges_router
+    from gamification.leaderboard.router import router as leaderboard_router
+    from gamification.points.router import router as points_router
     from pages.router import router as pages_router
+    from tasks.checkin.router import router as checkin_router
     from tasks.submissions.router import router as submissions_router
+    from tasks.templates.router import router as templates_router
 
     app = FastAPI()
-    app.include_router(auth_router)
-    app.include_router(pages_router)
-    app.include_router(submissions_router)
+    for r in [auth_router, pages_router, submissions_router,
+              badges_router, leaderboard_router, points_router,
+              checkin_router, templates_router]:
+        app.include_router(r)
     return app
 
 
@@ -40,9 +46,10 @@ async def db_app():
     """App with real MongoDB mock and pre-loaded users."""
     from core.classes.models import Class, ClassMembership
     from core.users.models import User
+    from gamification.badges.models import BadgeAward, BadgeDefinition
     from gamification.points.models import ClassPointConfig, PointTransaction
     from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride
-    from tasks.templates.models import TaskAssignment, TaskTemplate
+    from tasks.templates.models import TaskAssignment, TaskTemplate, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
 
     client = AsyncMongoMockClient()
@@ -51,9 +58,10 @@ async def db_app():
         database=db,
         document_models=[
             User, Class, ClassMembership,
-            TaskTemplate, TaskAssignment, TaskSubmission,
+            TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
             CheckinConfig, DailyCheckinOverride, CheckinRecord,
             PointTransaction, ClassPointConfig,
+            BadgeDefinition, BadgeAward,
         ],
     )
 

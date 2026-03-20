@@ -35,7 +35,7 @@
             {% endif %}
           </td>
           <td class="px-4 py-3 text-right whitespace-nowrap">
-            <a href="/pages/teacher/classes/{{ cls.id }}/members"
+            <a href="{{ url_for('class_members_page', class_id=cls.id) }}"
                class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">成員管理</a>
             <button onclick="toggleArchive('{{ cls.id }}', {{ 'true' if cls.is_archived else 'false' }}, '{{ cls.name }}')"
                     class="text-xs font-medium cursor-pointer

@@ -282,8 +282,14 @@ def register_auth_provider():
 @pytest.fixture
 async def page_app(db):
     from fastapi import FastAPI
+    from core.auth.router import router as auth_router
+    from gamification.badges.router import router as badges_router
+    from pages.router import router as pages_router
     from tasks.templates.router import router as templates_router
     app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(pages_router)
+    app.include_router(badges_router)
     app.include_router(templates_router)
     return app
 

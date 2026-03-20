@@ -9,10 +9,12 @@ from unittest.mock import MagicMock
 
 def _make_app():
     from core.auth.router import router as auth_router
+    from core.users.router import router as users_router
     from pages.router import router as pages_router
     app = FastAPI()
     app.include_router(auth_router)
     app.include_router(pages_router)
+    app.include_router(users_router)
     return app
 
 

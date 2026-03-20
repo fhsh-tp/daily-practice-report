@@ -57,10 +57,16 @@ async def checkin_config_app():
     await cls.insert()
     await ClassMembership(class_id=str(cls.id), user_id=str(teacher.id), role="teacher").insert()
 
+    from core.auth.router import router as auth_router
+    from gamification.badges.router import router as badges_router
+    from pages.router import router as pages_router
     from tasks.checkin.router import router as checkin_router
     from tasks.templates.router import router as templates_router
 
     app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(pages_router)
+    app.include_router(badges_router)
     app.include_router(checkin_router)
     app.include_router(templates_router)
 

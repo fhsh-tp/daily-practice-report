@@ -9,7 +9,7 @@
 
   {# Toolbar #}
   <div class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-    <a href="/pages/admin/users/new"
+    <a href="{{ url_for('admin_user_new_page') }}"
        class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors duration-150">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -40,14 +40,14 @@
     </label>
 
     {# CSV template downloads #}
-    <a href="/admin/users/import/template?type=student"
+    <a href="{{ url_for('download_import_template').include_query_params(type='student') }}"
        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0-4.5 4.5M12 3v13.5" />
       </svg>
       學生範本
     </a>
-    <a href="/admin/users/import/template?type=staff"
+    <a href="{{ url_for('download_import_template').include_query_params(type='staff') }}"
        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0-4.5 4.5M12 3v13.5" />
@@ -114,7 +114,7 @@
             {% endif %}
           </td>
           <td class="px-4 py-3 text-right">
-            <a href="/pages/admin/users/{{ user.id }}/edit"
+            <a href="{{ url_for('admin_user_edit_page', user_id=user.id) }}"
                class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">編輯</a>
             <button onclick="deleteUser('{{ user.id }}', '{{ user.username }}')"
                     class="text-red-600 dark:text-red-400 hover:underline text-xs font-medium cursor-pointer">刪除</button>
