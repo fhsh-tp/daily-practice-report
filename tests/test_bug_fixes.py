@@ -122,9 +122,9 @@ async def test_sidebar_hides_create_class_for_class_manager(sidebar_app):
 
 
 async def test_sidebar_shows_create_class_for_teacher_with_no_classes(sidebar_app):
-    """Regular TEACHER with no class memberships MUST see '建立第一個班級' in sidebar.
+    """Regular TEACHER with no class memberships MUST see '新增班級' button in sidebar.
 
-    Scenario: Teacher with no classes still sees create-class shortcut (task 1.3).
+    Scenario: Teacher with no classes still sees add-class button (task 3.2).
     """
     app, _, teacher = sidebar_app
     cookies = _cookies(str(teacher.id), int(TEACHER))
@@ -132,8 +132,8 @@ async def test_sidebar_shows_create_class_for_teacher_with_no_classes(sidebar_ap
                            cookies=cookies) as ac:
         resp = await ac.get("/pages/dashboard", follow_redirects=False)
     assert resp.status_code == 200
-    assert "建立第一個班級".encode() in resp.content, (
-        "Regular TEACHER with no classes should see '建立第一個班級' shortcut"
+    assert "新增班級".encode() in resp.content, (
+        "Regular TEACHER with no classes should see '新增班級' button"
     )
 
 

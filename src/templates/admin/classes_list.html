@@ -2,98 +2,213 @@
 
 {% block title %}班級管理 — {{ webpage.site_name }}{% endblock %}
 {% block admin_title %}班級管理{% endblock %}
-{% block admin_subtitle %}共 {{ total }} 個班級{% endblock %}
+{% block admin_subtitle %}
+  {% set active_count = class_list | selectattr('is_archived', 'equalto', false) | list | length %}
+  {% set archived_count = class_list | selectattr('is_archived', 'equalto', true) | list | length %}
+  共 {{ class_list | length }} 個班級
+{% endblock %}
 
 {% block admin_content %}
 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
 
-  {# Table #}
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">班級名稱</th>
-          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">擁有者</th>
-          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">成員數</th>
-          <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">狀態</th>
-          <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-        {% for cls in class_list %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100" id="class-row-{{ cls.id }}">
-          <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-            {{ cls.name }}
-          </td>
-          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{{ cls.owner_name }}</td>
-          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ cls.member_count }}</td>
-          <td class="px-4 py-3">
-            {% if cls.is_archived %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">已封存</span>
-            {% else %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">運作中</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 text-right whitespace-nowrap">
-            <a href="{{ url_for('class_members_page', class_id=cls.id) }}"
-               class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">成員管理</a>
-            <button onclick="toggleArchive('{{ cls.id }}', {{ 'true' if cls.is_archived else 'false' }}, '{{ cls.name }}')"
-                    class="text-xs font-medium cursor-pointer
-                      {% if cls.is_archived %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}
-                      hover:underline mr-3">
-              {% if cls.is_archived %}取消封存{% else %}封存{% endif %}
-            </button>
-            <button onclick="toggleVisibility('{{ cls.id }}', '{{ cls.name }}')"
-                    class="text-gray-500 dark:text-gray-400 hover:underline text-xs font-medium cursor-pointer">
-              隱藏
-            </button>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="5" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">尚無班級</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {# ── Tab Bar ── #}
+  <div class="border-b border-gray-200 dark:border-gray-800 px-4 pt-3">
+    <nav class="flex gap-1" role="tablist">
+      <button id="tab-active"
+              role="tab"
+              aria-selected="true"
+              onclick="switchTab('active')"
+              class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 border-brand-600 text-brand-700 dark:text-brand-400 dark:border-brand-400 transition-colors duration-150 cursor-pointer">
+        運作中
+        <span id="badge-active"
+              class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300">
+          {{ active_count }}
+        </span>
+      </button>
+      <button id="tab-archived"
+              role="tab"
+              aria-selected="false"
+              onclick="switchTab('archived')"
+              class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 cursor-pointer">
+        已封存
+        <span id="badge-archived"
+              class="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          {{ archived_count }}
+        </span>
+      </button>
+    </nav>
   </div>
 
-  {# Pagination #}
-  {% if total > page_size %}
-  <div class="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-800">
-    <span class="text-sm text-gray-500 dark:text-gray-400">第 {{ page }} 頁，共 {{ total }} 筆</span>
-    <div class="flex gap-2">
-      {% if page > 1 %}
-      <a href="?page={{ page - 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">上一頁</a>
-      {% endif %}
-      {% if (page * page_size) < total %}
-      <a href="?page={{ page + 1 }}" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">下一頁</a>
-      {% endif %}
+  {# ── Active Tab Panel ── #}
+  <div id="panel-active" role="tabpanel">
+    {# Search #}
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <input type="text"
+             id="search-active"
+             placeholder="搜尋班級名稱或教師名稱…"
+             oninput="filterRows('active', this.value)"
+             class="w-full sm:w-72 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 transition-colors duration-150" />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">班級名稱</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">擁有者</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">成員數</th>
+            <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-active" class="divide-y divide-gray-100 dark:divide-gray-800">
+          {% for cls in class_list if not cls.is_archived %}
+          <tr class="class-row hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100"
+              id="class-row-{{ cls.id }}"
+              data-name="{{ cls.name | lower }}"
+              data-teacher="{{ cls.owner_display_name | lower }}">
+            <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ cls.name }}</td>
+            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{{ cls.owner_name }}</td>
+            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ cls.member_count }}</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <a href="{{ url_for('class_members_page', class_id=cls.id) }}"
+                 class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">成員管理</a>
+              <button onclick="toggleArchive('{{ cls.id }}', false, '{{ cls.name }}')"
+                      class="text-amber-600 dark:text-amber-400 hover:underline text-xs font-medium cursor-pointer mr-3">
+                封存
+              </button>
+              <button onclick="toggleVisibility('{{ cls.id }}', '{{ cls.name }}')"
+                      class="text-gray-500 dark:text-gray-400 hover:underline text-xs font-medium cursor-pointer">
+                隱藏
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr id="empty-active">
+            <td colspan="4" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">尚無運作中班級</td>
+          </tr>
+          {% endfor %}
+          <tr id="no-results-active" class="hidden">
+            <td colspan="4" class="px-4 py-6 text-center text-gray-400 dark:text-gray-500 text-sm">找不到符合的班級</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
-  {% endif %}
+
+  {# ── Archived Tab Panel ── #}
+  <div id="panel-archived" role="tabpanel" class="hidden">
+    {# Search #}
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <input type="text"
+             id="search-archived"
+             placeholder="搜尋班級名稱或教師名稱…"
+             oninput="filterRows('archived', this.value)"
+             class="w-full sm:w-72 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 transition-colors duration-150" />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">班級名稱</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">擁有者</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">成員數</th>
+            <th class="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-archived" class="divide-y divide-gray-100 dark:divide-gray-800">
+          {% for cls in class_list if cls.is_archived %}
+          <tr class="class-row hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100"
+              id="class-row-{{ cls.id }}"
+              data-name="{{ cls.name | lower }}"
+              data-teacher="{{ cls.owner_display_name | lower }}">
+            <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ cls.name }}</td>
+            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{{ cls.owner_name }}</td>
+            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ cls.member_count }}</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <a href="{{ url_for('class_members_page', class_id=cls.id) }}"
+                 class="text-brand-600 dark:text-brand-400 hover:underline text-xs font-medium mr-3">成員管理</a>
+              <button onclick="toggleArchive('{{ cls.id }}', true, '{{ cls.name }}')"
+                      class="text-green-600 dark:text-green-400 hover:underline text-xs font-medium cursor-pointer">
+                取消封存
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr id="empty-archived">
+            <td colspan="4" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">尚無已封存班級</td>
+          </tr>
+          {% endfor %}
+          <tr id="no-results-archived" class="hidden">
+            <td colspan="4" class="px-4 py-6 text-center text-gray-400 dark:text-gray-500 text-sm">找不到符合的班級</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const tabs = ['active', 'archived'];
+  tabs.forEach(function(t) {
+    const btn = document.getElementById('tab-' + t);
+    const panel = document.getElementById('panel-' + t);
+    const isActive = t === tab;
+
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    panel.classList.toggle('hidden', !isActive);
+
+    if (isActive) {
+      btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+      btn.classList.add('border-brand-600', 'text-brand-700', 'dark:text-brand-400', 'dark:border-brand-400');
+    } else {
+      btn.classList.remove('border-brand-600', 'text-brand-700', 'dark:text-brand-400', 'dark:border-brand-400');
+      btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    }
+  });
+}
+
+// ── Frontend search/filter ─────────────────────────────────────────────────
+function filterRows(tab, query) {
+  const tbody = document.getElementById('tbody-' + tab);
+  const noResults = document.getElementById('no-results-' + tab);
+  const q = query.trim().toLowerCase();
+  const rows = tbody.querySelectorAll('tr.class-row');
+  let visibleCount = 0;
+
+  rows.forEach(function(row) {
+    const name = row.dataset.name || '';
+    const teacher = row.dataset.teacher || '';
+    const match = q === '' || name.includes(q) || teacher.includes(q);
+    row.classList.toggle('hidden', !match);
+    if (match) visibleCount++;
+  });
+
+  noResults.classList.toggle('hidden', visibleCount > 0 || q === '');
+}
+
+// ── Archive / Unarchive ────────────────────────────────────────────────────
 async function toggleArchive(classId, isArchived, name) {
   const action = isArchived ? '取消封存' : '封存';
-  Modal.confirm(`確定要${action}班級「${name}」嗎？`, async function () {
+  Modal.confirm('確定要' + action + '班級「' + name + '」嗎？', async function () {
     const endpoint = isArchived ? 'unarchive' : 'archive';
-    const resp = await fetch(`/classes/${classId}/${endpoint}`, { method: 'PATCH' });
+    const resp = await fetch('/classes/' + classId + '/' + endpoint, { method: 'PATCH' });
     if (resp.ok) {
       location.reload();
     } else {
-      Modal.alert(`${action}失敗`);
+      Modal.alert(action + '失敗');
     }
   });
 }
 
 async function toggleVisibility(classId, name) {
-  Modal.confirm(`確定要隱藏班級「${name}」嗎？學生將無法看到此班級。`, async function () {
-    const resp = await fetch(`/classes/${classId}/archive`, { method: 'PATCH' });
+  Modal.confirm('確定要隱藏班級「' + name + '」嗎？學生將無法看到此班級。', async function () {
+    const resp = await fetch('/classes/' + classId + '/archive', { method: 'PATCH' });
     if (resp.ok) {
       location.reload();
     } else {
