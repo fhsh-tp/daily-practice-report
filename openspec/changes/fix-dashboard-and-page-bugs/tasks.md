@@ -21,3 +21,14 @@
 - [x] 4.4 加入 `badges`：使用 `get_student_badges(user_id)` 取最新 10 筆（badge strip 資料）
 - [x] 4.5 加入 `recent_activities`：合併查詢 `CheckinRecord`、`TaskSubmission`、`BadgeAward` 三集合（各取最新 20 筆），轉換為統一格式 `{type, description, timestamp}` 並按時間降序排列，最多取 20 筆（對應設計決策：Dashboard context 補足策略）
 - [x] 4.6 在 teacher 模式的 class loop 中加入 `member_count`：使用 `ClassMembership.find(ClassMembership.class_id == class_id).count()` 查詢，加入每個 class status 物件（對應需求：Teacher views dashboard with member counts）
+
+## 5. Template URL 路徑統一（url_for 重構）
+
+- [x] 5.1 重構 `src/templates/shared/base.html`：將 sidebar、tablet nav、mobile bottom bar、header 中所有硬編碼路徑改為 `url_for(...)` 呼叫（包含 `dashboard_page`、`badges_page`、`class_members_page`、`templates_list_page`、`admin_users_list_page`、`admin_classes_list_page`、`admin_overview_page`、`login_page`、`logout`）
+- [x] 5.2 重構 `src/templates/student/dashboard.html`：將 checkin form action、submit 連結、teacher 工具欄等硬編碼路徑改為 `url_for(...)` 呼叫（含 `checkin_browser`、`submit_task_page`、`class_members_page`、`checkin_config_page`、`templates_list_page`、`leaderboard_page`、`points_manage_page`、`admin_users_list_page`、`admin_overview_page`）
+- [x] 5.3 重構 `src/templates/student/submit_task.html`：back 連結改為 `url_for('dashboard_page')`；form action 改為 `url_for('submit_task_form', class_id=class_id)`
+- [x] 5.4 重構 admin templates（`layout.html`、`index.html`、`users_list.html`、`user_form.html`、`system_settings.html`、`classes_list.html`）：所有路徑改為 `url_for(...)`；`download_import_template` 使用 `.include_query_params(type='student'/'staff')`
+- [x] 5.5 重構 `src/templates/login.html`：form action 改為 `url_for('login_form')`
+- [x] 5.6 重構 `src/templates/community/feed.html`：`delete_post`、`add_reaction` 等連結改為 `url_for(...)`
+- [x] 5.7 重構 teacher templates（`class_members.html`、`template_assign.html`、`template_form.html`、`templates_list.html`、`points_manage.html`）：所有路徑改為 `url_for(...)`
+- [x] 5.8 修復測試 fixture：補足 `tests/test_pages.py`、`test_dashboard_and_page_bugs.py`、`test_ui_polish.py`、`test_checkin_config_page.py`、`test_task_scheduling.py`、`test_setup_wizard.py`、`test_admin_pages.py` 中缺少的 router（`badges_router`、`points_router`、`checkin_router`、`templates_router`、`pages_router`、`auth_router`、`users_router` 等）及 Beanie 模型（`TaskScheduleRule`、`BadgeAward`、`BadgeDefinition` 等）
