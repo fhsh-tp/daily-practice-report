@@ -9,6 +9,7 @@ from core.classes.models import ClassMembership
 from core.users.models import User
 from gamification.points.service import (
     award_points,
+    deduct_points,
     get_balance,
     get_transaction_history,
     revoke_points,
@@ -16,6 +17,13 @@ from gamification.points.service import (
 from shared.webpage import webpage
 
 router = APIRouter(tags=["points"])
+
+
+class DeductRequest(BaseModel):
+    student_id: str
+    class_id: str
+    amount: int
+    reason: str
 
 
 class RevokeRequest(BaseModel):
@@ -26,6 +34,26 @@ class RevokeRequest(BaseModel):
 class ConfigRequest(BaseModel):
     checkin_points: int = 5
     submission_points: int = 10
+
+
+@router.post("/api/points/deduct")
+async def deduct_student_points(
+    body: DeductRequest,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    if body.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Amount must be positive",
+        )
+    tx = await deduct_points(
+        student_id=body.student_id,
+        class_id=body.class_id,
+        amount=body.amount,
+        reason=body.reason,
+        deducted_by=str(teacher.id),
+    )
+    return {"deducted": abs(tx.amount), "new_balance": await get_balance(body.student_id)}
 
 
 @router.get("/students/me/points")

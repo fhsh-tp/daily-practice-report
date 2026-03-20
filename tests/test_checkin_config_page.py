@@ -24,6 +24,8 @@ def register_auth_provider():
 async def checkin_config_app():
     from core.classes.models import Class, ClassMembership
     from core.users.models import User
+    from gamification.badges.models import BadgeAward, BadgeDefinition
+    from gamification.points.models import ClassPointConfig, PointTransaction
     from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord
     from tasks.templates.models import TaskAssignment, TaskScheduleRule, TaskTemplate
     from tasks.submissions.models import TaskSubmission
@@ -36,6 +38,8 @@ async def checkin_config_app():
             User, Class, ClassMembership,
             TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
             CheckinConfig, DailyCheckinOverride, CheckinRecord,
+            PointTransaction, ClassPointConfig,
+            BadgeDefinition, BadgeAward,
         ],
     )
 
@@ -61,6 +65,7 @@ async def checkin_config_app():
     from gamification.badges.router import router as badges_router
     from pages.router import router as pages_router
     from tasks.checkin.router import router as checkin_router
+    from tasks.submissions.router import router as submissions_router
     from tasks.templates.router import router as templates_router
 
     app = FastAPI()
@@ -68,6 +73,7 @@ async def checkin_config_app():
     app.include_router(pages_router)
     app.include_router(badges_router)
     app.include_router(checkin_router)
+    app.include_router(submissions_router)
     app.include_router(templates_router)
 
     yield app, teacher, cls

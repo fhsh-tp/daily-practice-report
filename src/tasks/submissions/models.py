@@ -14,6 +14,8 @@ class TaskSubmission(Document):
     class_id: str
     date: date
     submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    teacher_comment: str | None = None
+    reviewed_at: datetime | None = None
 
     class Settings:
         name = "tasksubmissions"

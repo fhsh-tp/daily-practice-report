@@ -11,6 +11,8 @@ async def db():
     database = client.get_database("test_scheduling")
     from core.users.models import User
     from core.classes.models import Class, ClassMembership
+    from gamification.badges.models import BadgeAward, BadgeDefinition
+    from gamification.points.models import ClassPointConfig, PointTransaction
     from tasks.templates.models import TaskTemplate, TaskAssignment, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
     await init_beanie(
@@ -18,6 +20,8 @@ async def db():
         document_models=[
             User, Class, ClassMembership,
             TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
+            PointTransaction, ClassPointConfig,
+            BadgeDefinition, BadgeAward,
         ],
     )
     yield database
@@ -285,11 +289,13 @@ async def page_app(db):
     from core.auth.router import router as auth_router
     from gamification.badges.router import router as badges_router
     from pages.router import router as pages_router
+    from tasks.submissions.router import router as submissions_router
     from tasks.templates.router import router as templates_router
     app = FastAPI()
     app.include_router(auth_router)
     app.include_router(pages_router)
     app.include_router(badges_router)
+    app.include_router(submissions_router)
     app.include_router(templates_router)
     return app
 
