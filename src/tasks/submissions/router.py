@@ -14,6 +14,7 @@ from extensions.protocols.reward import RewardEvent, RewardEventType
 from extensions.protocols.validator import ValidationResult
 from pages.deps import get_page_user
 from shared.webpage import webpage
+from tasks.submissions.models import TaskSubmission
 from tasks.submissions.service import (
     get_class_submissions_for_date,
     get_student_submissions,
@@ -27,6 +28,10 @@ router = APIRouter(tags=["submissions"])
 class SubmitRequest(BaseModel):
     field_values: dict[str, Any]
     submission_date: date | None = None
+
+
+class CommentRequest(BaseModel):
+    comment: str
 
 
 @router.post("/classes/{class_id}/submissions", status_code=status.HTTP_201_CREATED)
@@ -88,6 +93,22 @@ async def submit_task_endpoint(
     return {"id": str(submission.id), "date": str(submission.date), "points_earned": points_earned}
 
 
+@router.post("/api/submissions/{submission_id}/comment")
+async def add_submission_comment(
+    submission_id: str,
+    body: CommentRequest,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from datetime import datetime, timezone
+    sub = await TaskSubmission.get(submission_id)
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    sub.teacher_comment = body.comment
+    sub.reviewed_at = datetime.now(timezone.utc)
+    await sub.save()
+    return {"id": str(sub.id), "teacher_comment": sub.teacher_comment}
+
+
 @router.get("/students/me/submissions")
 async def my_submissions(user: User = Depends(get_current_user)):
     subs = await get_student_submissions(str(user.id))
@@ -119,6 +140,82 @@ async def class_submissions(
         }
         for s in subs
     ]
+
+@router.get("/pages/teacher/class/{class_id}/submissions", name="submission_review_page")
+@webpage.page("teacher/submission_review.html")
+async def submission_review_page(
+    request: Request,
+    class_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    from core.classes.models import Class, ClassMembership
+    from core.users.models import User as UserModel
+
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
+
+    all_subs = await TaskSubmission.find(
+        TaskSubmission.class_id == class_id
+    ).sort(-TaskSubmission.submitted_at).to_list()
+
+    memberships = await ClassMembership.find(
+        ClassMembership.class_id == class_id,
+        ClassMembership.role == "student",
+    ).to_list()
+
+    student_map: dict[str, str] = {}
+    for m in memberships:
+        u = await UserModel.get(m.user_id)
+        if u:
+            student_map[m.user_id] = u.display_name
+
+    grouped: dict[str, dict] = {}
+    for sub in all_subs:
+        sid = sub.student_id
+        if sid not in grouped:
+            grouped[sid] = {
+                "student_id": sid,
+                "display_name": student_map.get(sid, sid),
+                "submissions": [],
+            }
+        grouped[sid]["submissions"].append(sub)
+
+    return {
+        "current_user": teacher,
+        "class_id": class_id,
+        "class_name": cls.name,
+        "students": list(grouped.values()),
+        "can_manage_tasks": True,
+        "can_manage_class": True,
+        "can_manage_all_classes": False,
+        "can_manage_users": False,
+        "is_sys_admin": False,
+        "classes": [],
+    }
+
+
+@router.get("/pages/student/history", name="learning_history_page")
+@webpage.page("student/learning_history.html")
+async def learning_history_page(
+    request: Request,
+    current_user: User = Depends(get_page_user),
+):
+    subs = await TaskSubmission.find(
+        TaskSubmission.student_id == str(current_user.id)
+    ).sort(-TaskSubmission.submitted_at).limit(50).to_list()
+
+    return {
+        "current_user": current_user,
+        "submissions": subs,
+        "can_manage_tasks": False,
+        "can_manage_class": False,
+        "can_manage_all_classes": False,
+        "can_manage_users": False,
+        "is_sys_admin": False,
+        "classes": [],
+    }
+
 
 @router.get("/pages/student/classes/{class_id}/submit", name="submit_task_page")
 @webpage.page("student/submit_task.html")

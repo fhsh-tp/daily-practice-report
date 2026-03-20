@@ -15,11 +15,11 @@ async def db():
     database = client.get_database("test_submissions")
     from core.users.models import User
     from core.classes.models import Class, ClassMembership
-    from tasks.templates.models import TaskTemplate, TaskAssignment
+    from tasks.templates.models import TaskTemplate, TaskAssignment, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
     await init_beanie(
         database=database,
-        document_models=[User, Class, ClassMembership, TaskTemplate, TaskAssignment, TaskSubmission],
+        document_models=[User, Class, ClassMembership, TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission],
     )
     yield database
     client.close()
@@ -110,3 +110,13 @@ async def test_number_field_rejects_non_numeric(db, student, template):
             template, "cls1", student, date(2026, 3, 18),
             {"notes": "ok", "optional": "not_a_number"}
         )
+
+
+# --- TaskSubmission model: teacher_comment / reviewed_at fields ---
+
+async def test_new_submission_has_null_comment(db, student, template):
+    """New submissions have null teacher_comment and reviewed_at (task 1.1, 1.2)."""
+    from tasks.submissions.service import submit_task
+    sub = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "hi"})
+    assert sub.teacher_comment is None
+    assert sub.reviewed_at is None

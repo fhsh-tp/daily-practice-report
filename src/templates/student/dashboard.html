@@ -180,6 +180,9 @@
       <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <h3 class="font-heading font-semibold text-base text-gray-900 dark:text-gray-100">{{ class_status.class_name }}</h3>
+          {% if class_status.owner_display_name %}
+          <span class="text-xs text-gray-400 dark:text-gray-500">{{ class_status.owner_display_name }}</span>
+          {% endif %}
           {% if class_status.is_archived %}
           <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">已封存</span>
           {% endif %}

@@ -637,3 +637,37 @@ After a student successfully submits a task, the system SHALL display how many p
 source: ui-polish-and-fixes
 updated: 2026-03-19
 -->
+
+---
+### Requirement: Teacher deduct entry type in point ledger
+
+The points system SHALL support a `teacher_deduct` entry type in `PointLedger` to record teacher-initiated point deductions.
+
+#### Scenario: Deduction recorded with entry type
+
+- **WHEN** a teacher deducts points from a student
+- **THEN** the system SHALL create a PointLedger entry with `entry_type` set to `"teacher_deduct"`, including the deduction amount (negative) and reason
+
+#### Scenario: Student balance reflects deduction
+
+- **WHEN** a `teacher_deduct` entry is created
+- **THEN** the student's point balance returned by `get_balance()` SHALL decrease by the deducted amount
+
+<!-- @trace
+source: submission-review-and-history
+updated: 2026-03-20
+code:
+  - src/gamification/points/router.py
+  - src/templates/shared/base.html
+  - src/gamification/points/service.py
+  - src/templates/teacher/submission_review.html
+  - src/templates/student/learning_history.html
+  - src/tasks/submissions/models.py
+  - src/tasks/submissions/router.py
+tests:
+  - tests/test_task_scheduling.py
+  - tests/test_points.py
+  - tests/test_submissions.py
+  - tests/test_submission_review.py
+  - tests/test_checkin_config_page.py
+-->

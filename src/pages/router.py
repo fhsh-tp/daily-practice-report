@@ -98,11 +98,19 @@ async def dashboard_page(
             ClassMembership.class_id == m.class_id
         ).count()
 
+        from core.users.models import User as UserModel
+        try:
+            owner = await UserModel.get(cls.owner_id)
+            owner_display_name = owner.display_name if owner else ""
+        except Exception:
+            owner_display_name = ""
+
         classes.append({
             "class_id": m.class_id,
             "class_name": cls.name,
             "is_archived": cls.is_archived,
             "owner_id": cls.owner_id,
+            "owner_display_name": owner_display_name,
             "checkin_open": checkin_result.is_open,
             "already_checked_in": existing_checkin is not None,
             "closes_at": checkin_result.closes_at.isoformat() if checkin_result.closes_at else None,
@@ -242,6 +250,58 @@ async def _require_manage_class(current_user: User = Depends(get_page_user)) -> 
     return current_user
 
 
+@router.get("/teacher/class/{class_id}", name="teacher_class_hub_page")
+@webpage.page("teacher/class_hub.html")
+async def teacher_class_hub(
+    request: Request,
+    class_id: str,
+    current_user: User = Depends(get_page_user),
+):
+    from core.classes.models import Class, ClassMembership
+    from core.classes.service import can_manage_class
+    from tasks.checkin.service import is_checkin_open
+    from datetime import datetime, timezone
+
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    if not await can_manage_class(current_user, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    member_count = await ClassMembership.find(ClassMembership.class_id == class_id).count()
+    now = datetime.now(timezone.utc)
+    checkin_result = await is_checkin_open(class_id, now)
+
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    can_manage = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+
+    # Build classes list for sidebar (teacher's managed classes)
+    memberships = await ClassMembership.find(
+        ClassMembership.user_id == str(current_user.id)
+    ).to_list()
+    sidebar_classes = []
+    for m in memberships:
+        c = await Class.get(m.class_id)
+        if c and not c.is_archived:
+            sidebar_classes.append({"class_id": m.class_id, "class_name": c.name})
+
+    return {
+        "current_user": current_user,
+        "class_id": class_id,
+        "class_name": cls.name,
+        "member_count": member_count,
+        "checkin_open": checkin_result.is_open,
+        "is_archived": cls.is_archived,
+        "classes": sidebar_classes,
+        "can_manage_class": can_manage,
+        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
+        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
+        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+    }
+
+
 @router.get("/admin/", name="admin_overview_page")
 @webpage.page("admin/index.html")
 async def admin_overview(
@@ -336,6 +396,9 @@ async def admin_user_new_submit(
     valid_tags = {t.value for t in IdentityTag}
     identity_tags = [IdentityTag(v) for v in identity_tag_values if v in valid_tags]
 
+    if not email or not email.strip():
+        error_url = request.url_for("admin_user_new_page").include_query_params(error="Email 為必填欄位")
+        return (str(error_url), 302)
     existing = await User.find_one(User.username == username)
     if existing:
         error_url = request.url_for("admin_user_new_page").include_query_params(error="使用者名稱已存在")
@@ -436,30 +499,93 @@ async def admin_user_edit_submit(
     return (str(success_url), 302)
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Personal Settings Page
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.get("/settings", name="settings_page")
+@webpage.page("settings.html")
+async def settings_page(
+    request: Request,
+    current_user: User = Depends(get_page_user),
+):
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    from core.classes.models import Class, ClassMembership
+    memberships = await ClassMembership.find(
+        ClassMembership.user_id == str(current_user.id)
+    ).to_list()
+    classes = []
+    can_manage_class = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+    for m in memberships:
+        c = await Class.get(m.class_id)
+        if c and not c.is_archived:
+            classes.append({"class_id": m.class_id, "class_name": c.name})
+    return {
+        "current_user": current_user,
+        "classes": classes,
+        "can_manage_class": can_manage_class,
+        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
+        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
+        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.post("/settings/display-name", name="settings_update_display_name")
+@webpage.redirect(status_code=302)
+async def settings_update_display_name(
+    request: Request,
+    display_name: str = Form(...),
+    current_user: User = Depends(get_page_user),
+):
+    if not display_name.strip():
+        error_url = request.url_for("settings_page").include_query_params(error="顯示名稱不可為空")
+        return (str(error_url), 302)
+    current_user.display_name = display_name.strip()
+    await current_user.save()
+    success_url = request.url_for("settings_page").include_query_params(success="顯示名稱已更新")
+    return (str(success_url), 302)
+
+
+@router.post("/settings/password", name="settings_update_password")
+@webpage.redirect(status_code=302)
+async def settings_update_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    current_user: User = Depends(get_page_user),
+):
+    from core.auth.password import hash_password, verify_password
+    if not verify_password(current_password, current_user.hashed_password):
+        error_url = request.url_for("settings_page").include_query_params(error="目前密碼錯誤")
+        return (str(error_url), 302)
+    current_user.hashed_password = hash_password(new_password)
+    await current_user.save()
+    success_url = request.url_for("settings_page").include_query_params(success="密碼已更新")
+    return (str(success_url), 302)
+
+
 @router.get("/admin/classes/", name="admin_classes_list_page")
 @webpage.page("admin/classes_list.html")
 async def admin_classes_list(
     request: Request,
-    page: int = 1,
-    page_size: int = 20,
     current_user: User = Depends(_require_manage_class),
 ):
     from core.classes.models import Class, ClassMembership
-    skip = (page - 1) * page_size
     all_classes = await Class.find_all().to_list()
-    total = len(all_classes)
-    page_classes = all_classes[skip: skip + page_size]
 
     classes = []
-    for cls in page_classes:
+    for cls in all_classes:
         member_count = await ClassMembership.find(ClassMembership.class_id == str(cls.id)).count()
-        # Resolve owner username
         owner = await User.get(cls.owner_id) if cls.owner_id else None
         classes.append({
             "id": str(cls.id),
             "name": cls.name,
             "owner_id": cls.owner_id,
             "owner_name": owner.display_name if owner else cls.owner_id,
+            "owner_display_name": owner.display_name if owner else "",
             "invite_code": cls.invite_code,
             "is_archived": cls.is_archived,
             "member_count": member_count,
@@ -468,9 +594,6 @@ async def admin_classes_list(
     return {
         **_admin_context(current_user),
         "class_list": classes,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
         "admin_section": "classes",
         "success": request.query_params.get("success"),
         "error": request.query_params.get("error"),
