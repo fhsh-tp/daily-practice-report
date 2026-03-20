@@ -15,9 +15,9 @@
 
 ## 4. 補足 Dashboard Context 變數
 
-- [ ] 4.1 在 `src/pages/router.py` 的 `dashboard_page` 中加入 `stats.badge_count`：使用 `BadgeAward.find(BadgeAward.student_id == user_id).count()` 查詢（對應需求：Dashboard is the unified authenticated entry point — Student views dashboard with full stats）
-- [ ] 4.2 加入 `stats.submission_count`：使用 `TaskSubmission.find(TaskSubmission.student_id == user_id).count()` 查詢
-- [ ] 4.3 加入 `stats.streak_days`：暫設為 `0`（streak 計算邏輯尚未實作，設計決策：Dashboard context 補足策略）
-- [ ] 4.4 加入 `badges`：使用 `get_student_badges(user_id)` 取最新 10 筆（badge strip 資料）
-- [ ] 4.5 加入 `recent_activities`：合併查詢 `CheckinRecord`、`TaskSubmission`、`BadgeAward` 三集合（各取最新 20 筆），轉換為統一格式 `{type, description, timestamp}` 並按時間降序排列，最多取 20 筆（對應設計決策：Dashboard context 補足策略）
-- [ ] 4.6 在 teacher 模式的 class loop 中加入 `member_count`：使用 `ClassMembership.find(ClassMembership.class_id == class_id).count()` 查詢，加入每個 class status 物件（對應需求：Teacher views dashboard with member counts）
+- [x] 4.1 在 `src/pages/router.py` 的 `dashboard_page` 中加入 `stats.badge_count`：使用 `BadgeAward.find(BadgeAward.student_id == user_id).count()` 查詢（對應需求：Dashboard is the unified authenticated entry point — Student views dashboard with full stats）
+- [x] 4.2 加入 `stats.submission_count`：使用 `TaskSubmission.find(TaskSubmission.student_id == user_id).count()` 查詢
+- [x] 4.3 加入 `stats.streak_days`：暫設為 `0`（streak 計算邏輯尚未實作，設計決策：Dashboard context 補足策略）
+- [x] 4.4 加入 `badges`：使用 `get_student_badges(user_id)` 取最新 10 筆（badge strip 資料）
+- [x] 4.5 加入 `recent_activities`：合併查詢 `CheckinRecord`、`TaskSubmission`、`BadgeAward` 三集合（各取最新 20 筆），轉換為統一格式 `{type, description, timestamp}` 並按時間降序排列，最多取 20 筆（對應設計決策：Dashboard context 補足策略）
+- [x] 4.6 在 teacher 模式的 class loop 中加入 `member_count`：使用 `ClassMembership.find(ClassMembership.class_id == class_id).count()` 查詢，加入每個 class status 物件（對應需求：Teacher views dashboard with member counts）

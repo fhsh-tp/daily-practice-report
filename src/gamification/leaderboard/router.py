@@ -6,6 +6,7 @@ from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
+from pages.deps import get_page_user
 from shared.webpage import webpage
 
 router = APIRouter(tags=["leaderboard"])
@@ -87,7 +88,7 @@ async def cross_class_leaderboard(user: User = Depends(get_current_user)):
 async def leaderboard_page(
     request: Request,
     class_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_page_user),
 ):
     cls = await Class.get(class_id)
     if cls is None:

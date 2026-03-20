@@ -10,6 +10,7 @@ from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
 from gamification.badges.models import BadgeAward, BadgeDefinition
 from gamification.badges.service import award_badge, get_student_badges
+from pages.deps import get_page_user
 from shared.webpage import webpage
 
 router = APIRouter(tags=["badges"])
@@ -91,7 +92,7 @@ async def my_badges(user: User = Depends(get_current_user)):
 @webpage.page("student/badges.html")
 async def badges_page(
     request: Request,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_page_user),
 ):
     badges = await get_student_badges(str(user.id))
     return {"current_user": user, "badges": badges}

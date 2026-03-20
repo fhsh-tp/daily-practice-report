@@ -19,8 +19,8 @@
       </svg>
       返回儀表板
     </a>
-    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">{{ template.name }}</h1>
-    {% if template.description %}
+    <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">{% if template %}{{ template.name }}{% else %}今日任務{% endif %}</h1>
+    {% if template and template.description %}
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ template.description }}</p>
     {% endif %}
   </div>
@@ -50,6 +50,7 @@
   </div>
   {% endif %}
 
+  {% if template %}
   <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
     <form method="post" action="/classes/{{ class_id }}/submit" id="submit-form" class="space-y-6">
 
@@ -118,6 +119,7 @@
 
     </form>
   </div>
+  {% endif %}{# /if template #}
 </div>
 {% endblock %}
 

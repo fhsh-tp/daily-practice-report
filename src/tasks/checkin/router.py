@@ -113,7 +113,11 @@ async def checkin_browser(
         record = await do_checkin(user, class_id, now)
     except ValueError as e:
         error_msg = str(e)
-        # Already checked in or window closed → redirect to dashboard with error
+        dashboard_base = str(request.url_for("dashboard_page"))
+        # "Already checked in" is not an error — redirect silently to dashboard
+        if "already checked in" in error_msg.lower():
+            return (dashboard_base, 302)
+        # Other errors (window closed, etc.) → redirect with error param
         dashboard_url = request.url_for("dashboard_page").include_query_params(error=error_msg)
         return (str(dashboard_url), 302)
 

@@ -94,6 +94,9 @@ async def dashboard_page(
             CheckinRecord.checkin_date == today,
         )
         today_template = await get_template_for_date(m.class_id, today)
+        member_count = await ClassMembership.find(
+            ClassMembership.class_id == m.class_id
+        ).count()
 
         classes.append({
             "class_id": m.class_id,
@@ -105,15 +108,52 @@ async def dashboard_page(
             "closes_at": checkin_result.closes_at.isoformat() if checkin_result.closes_at else None,
             "reason": checkin_result.reason,
             "today_template": today_template,
+            "member_count": member_count,
         })
 
+    from gamification.badges.models import BadgeAward
+    from gamification.badges.service import get_student_badges
     from gamification.points.service import get_balance
-    total_points = await get_balance(str(current_user.id))
+    from tasks.submissions.models import TaskSubmission
+
+    user_id = str(current_user.id)
+    total_points = await get_balance(user_id)
+    badge_count = await BadgeAward.find(BadgeAward.student_id == user_id).count()
+    submission_count = await TaskSubmission.find(TaskSubmission.student_id == user_id).count()
+    badges = await get_student_badges(user_id)
+
+    # Build recent_activities from CheckinRecord, TaskSubmission, BadgeAward
+    checkin_records = await CheckinRecord.find(
+        CheckinRecord.student_id == user_id
+    ).sort(-CheckinRecord.checked_in_at).limit(20).to_list()
+    submissions = await TaskSubmission.find(
+        TaskSubmission.student_id == user_id
+    ).sort(-TaskSubmission.submitted_at).limit(20).to_list()
+    badge_awards = await BadgeAward.find(
+        BadgeAward.student_id == user_id
+    ).sort(-BadgeAward.awarded_at).limit(20).to_list()
+
+    activities = []
+    for r in checkin_records:
+        activities.append({"type": "checkin", "description": "完成每日簽到", "timestamp": r.checked_in_at})
+    for s in submissions:
+        activities.append({"type": "submission", "description": f"提交任務", "timestamp": s.submitted_at})
+    for a in badge_awards:
+        activities.append({"type": "badge", "description": f"獲得徽章", "timestamp": a.awarded_at})
+    activities.sort(key=lambda x: x["timestamp"], reverse=True)
+    recent_activities = activities[:20]
 
     return {
         "current_user": current_user,
         "classes": classes,
-        "stats": {"total_points": total_points},
+        "stats": {
+            "total_points": total_points,
+            "badge_count": badge_count,
+            "submission_count": submission_count,
+            "streak_days": 0,
+        },
+        "badges": badges,
+        "recent_activities": recent_activities,
         "can_manage_class": can_manage_class,
         "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),

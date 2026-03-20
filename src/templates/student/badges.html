@@ -45,7 +45,7 @@
       <p class="text-xs text-gray-500 dark:text-gray-400 text-center leading-tight">{{ award.reason }}</p>
       {% endif %}
       <p class="text-xs text-brand-600 dark:text-brand-400 font-medium text-center">
-        {{ award.awarded_at[:10] }}
+        {{ award.awarded_at.strftime('%Y-%m-%d') }}
       </p>
     </div>
   </div>

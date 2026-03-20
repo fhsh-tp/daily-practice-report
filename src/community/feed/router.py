@@ -7,6 +7,7 @@ from core.auth.deps import get_current_user
 from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import ClassMembership
 from core.users.models import User
+from pages.deps import get_page_user
 from shared.webpage import webpage
 
 router = APIRouter(tags=["feed"])
@@ -149,7 +150,7 @@ async def delete_post(
 async def feed_page(
     request: Request,
     class_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_page_user),
 ):
     await _assert_member(class_id, str(user.id))
     from core.classes.models import Class
