@@ -482,6 +482,7 @@ Teachers with `MANAGE_OWN_CLASS` or `MANAGE_ALL_CLASSES` permission SHALL be abl
 - **THEN** `POST /classes/{class_id}/checkin-config` is called with the selected weekdays
 - **AND** the page reloads with a success message confirming the update
 
+---
 ### Requirement: Teacher sets a single-day check-in override via web UI
 
 Teachers SHALL be able to add a single-day override (activate or deactivate check-in for a specific date, with optional custom time window) through the check-in config page without leaving the browser.
@@ -500,51 +501,65 @@ updated: 2026-03-19
 ---
 ### Requirement: Student performs daily check-in via browser form
 
-The system SHALL accept check-in via `POST /classes/{class_id}/checkin` from browser form submissions. The endpoint SHALL redirect after processing (PRG pattern). On success or expected states (already checked in, window closed), it SHALL redirect to `GET /pages/dashboard`. On unexpected error, it SHALL redirect to `GET /pages/dashboard?error=<message>`.
+The system SHALL accept check-in via `POST /classes/{class_id}/checkin/browser` from browser form submissions. The endpoint SHALL redirect after processing (PRG pattern). The redirect behavior SHALL differ based on outcome:
+
+- **Success**: Record created → redirect to `GET /pages/dashboard` (HTTP 302, no error parameter)
+- **Already checked in**: Duplicate attempt → redirect to `GET /pages/dashboard` (HTTP 302, **no error parameter**)
+- **Window closed or other error**: → redirect to `GET /pages/dashboard?error=<message>` (HTTP 302, with error parameter)
+
+The "already checked in" state MUST NOT be treated as an error condition in the redirect. It is an expected idempotent state.
 
 #### Scenario: Successful check-in redirects to dashboard
 
 - **WHEN** a student submits the check-in form and the check-in window is open
 - **THEN** the system SHALL record the check-in and redirect to `GET /pages/dashboard` (HTTP 302)
+- **AND** the redirect SHALL NOT include an `error` query parameter
 
-#### Scenario: Already checked in redirects to dashboard
+#### Scenario: Already checked in redirects to dashboard without error
 
 - **WHEN** a student who already checked in today submits the check-in form
 - **THEN** the system SHALL redirect to `GET /pages/dashboard` (HTTP 302) without creating a duplicate record
+- **AND** the redirect SHALL NOT include an `error` query parameter
 
 #### Scenario: Check-in window closed redirects with error
 
 - **WHEN** a student submits the check-in form outside the check-in window
 - **THEN** the system SHALL redirect to `GET /pages/dashboard?error=簽到時間已關閉` (HTTP 302)
+- **AND** the redirect SHALL include the `error` query parameter with a descriptive message
 
 <!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
+source: fix-dashboard-and-page-bugs
+updated: 2026-03-20
 code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
-  - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
-  - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
+  - src/templates/teacher/template_form.html
   - src/pages/router.py
+  - uv.lock
+  - src/templates/admin/index.html
+  - src/templates/teacher/templates_list.html
+  - src/templates/teacher/template_assign.html
+  - src/templates/login.html
+  - src/templates/admin/users_list.html
+  - src/templates/student/submit_task.html
+  - src/gamification/badges/router.py
+  - src/templates/community/feed.html
+  - src/templates/student/dashboard.html
   - src/community/feed/router.py
+  - src/templates/admin/layout.html
+  - src/templates/admin/user_form.html
+  - src/tasks/checkin/router.py
+  - src/gamification/leaderboard/router.py
+  - src/templates/student/badges.html
+  - src/templates/admin/classes_list.html
+  - src/templates/teacher/points_manage.html
+  - src/templates/admin/system_settings.html
+  - src/templates/teacher/class_members.html
+  - src/templates/shared/base.html
 tests:
+  - tests/test_checkin_config_page.py
+  - tests/test_ui_polish.py
+  - tests/test_setup_wizard.py
+  - tests/test_admin_pages.py
   - tests/test_pages.py
+  - tests/test_task_scheduling.py
+  - tests/test_dashboard_and_page_bugs.py
 -->
