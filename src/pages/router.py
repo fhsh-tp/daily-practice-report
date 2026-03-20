@@ -396,6 +396,9 @@ async def admin_user_new_submit(
     valid_tags = {t.value for t in IdentityTag}
     identity_tags = [IdentityTag(v) for v in identity_tag_values if v in valid_tags]
 
+    if not email or not email.strip():
+        error_url = request.url_for("admin_user_new_page").include_query_params(error="Email 為必填欄位")
+        return (str(error_url), 302)
     existing = await User.find_one(User.username == username)
     if existing:
         error_url = request.url_for("admin_user_new_page").include_query_params(error="使用者名稱已存在")
@@ -493,6 +496,74 @@ async def admin_user_edit_submit(
         user.hashed_password = hash_password(new_password)
     await user.save()
     success_url = request.url_for("admin_users_list_page").include_query_params(success="使用者已更新")
+    return (str(success_url), 302)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Personal Settings Page
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.get("/settings", name="settings_page")
+@webpage.page("settings.html")
+async def settings_page(
+    request: Request,
+    current_user: User = Depends(get_page_user),
+):
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    from core.classes.models import Class, ClassMembership
+    memberships = await ClassMembership.find(
+        ClassMembership.user_id == str(current_user.id)
+    ).to_list()
+    classes = []
+    can_manage_class = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+    for m in memberships:
+        c = await Class.get(m.class_id)
+        if c and not c.is_archived:
+            classes.append({"class_id": m.class_id, "class_name": c.name})
+    return {
+        "current_user": current_user,
+        "classes": classes,
+        "can_manage_class": can_manage_class,
+        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
+        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
+        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "success": request.query_params.get("success"),
+        "error": request.query_params.get("error"),
+    }
+
+
+@router.post("/settings/display-name", name="settings_update_display_name")
+@webpage.redirect(status_code=302)
+async def settings_update_display_name(
+    request: Request,
+    display_name: str = Form(...),
+    current_user: User = Depends(get_page_user),
+):
+    if not display_name.strip():
+        error_url = request.url_for("settings_page").include_query_params(error="顯示名稱不可為空")
+        return (str(error_url), 302)
+    current_user.display_name = display_name.strip()
+    await current_user.save()
+    success_url = request.url_for("settings_page").include_query_params(success="顯示名稱已更新")
+    return (str(success_url), 302)
+
+
+@router.post("/settings/password", name="settings_update_password")
+@webpage.redirect(status_code=302)
+async def settings_update_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    current_user: User = Depends(get_page_user),
+):
+    from core.auth.password import hash_password, verify_password
+    if not verify_password(current_password, current_user.hashed_password):
+        error_url = request.url_for("settings_page").include_query_params(error="目前密碼錯誤")
+        return (str(error_url), 302)
+    current_user.hashed_password = hash_password(new_password)
+    await current_user.save()
+    success_url = request.url_for("settings_page").include_query_params(success="密碼已更新")
     return (str(success_url), 302)
 
 
