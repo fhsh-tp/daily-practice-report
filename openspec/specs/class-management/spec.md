@@ -495,3 +495,10 @@ tests:
   - tests/test_bug_fixes.py
   - tests/test_class_hub_page.py
 -->
+
+<!-- @trace
+source: teacher-class-ux-refactor
+updated: 2026-03-21
+code:
+  - CLAUDE.md
+-->
