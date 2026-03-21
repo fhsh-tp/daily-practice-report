@@ -168,6 +168,23 @@ async def batch_invite(
     return {"added": added}
 
 
+class DiscordWebhookRequest(BaseModel):
+    webhook_url: str
+
+
+@router.patch("/{class_id}/discord-webhook")
+async def update_discord_webhook(
+    class_id: str,
+    body: DiscordWebhookRequest,
+    user: User = Depends(get_current_user),
+):
+    """Save or clear the Discord Webhook URL for a class (teacher-only)."""
+    cls = await _require_manage(class_id, user)
+    cls.discord_webhook_url = body.webhook_url.strip() or None
+    await cls.save()
+    return {"id": str(cls.id), "has_discord_webhook": cls.discord_webhook_url is not None}
+
+
 @router.patch("/{class_id}/archive")
 async def archive_class(class_id: str, user: User = Depends(get_current_user)):
     """Archive a class. Only the class owner or a global class manager can do this."""

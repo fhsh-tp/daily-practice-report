@@ -293,6 +293,7 @@ async def teacher_class_hub(
         "member_count": member_count,
         "checkin_open": checkin_result.is_open,
         "is_archived": cls.is_archived,
+        "discord_webhook_url": cls.discord_webhook_url or "",
         "classes": sidebar_classes,
         "can_manage_class": can_manage,
         "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),

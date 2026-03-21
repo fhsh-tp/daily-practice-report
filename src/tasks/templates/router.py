@@ -1,4 +1,5 @@
 """Task templates router."""
+import logging
 from datetime import date
 from typing import Any, Optional
 
@@ -11,6 +12,7 @@ from core.auth.deps import get_current_user
 from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_TASKS
 from core.users.models import User
+from integrations.discord.service import send_task_embed as discord_send_task_embed
 from tasks.templates.service import (
     archive_template,
     assign_template_to_date,
@@ -23,6 +25,8 @@ from tasks.templates.service import (
 )
 
 router = APIRouter(tags=["templates"])
+
+logger = logging.getLogger(__name__)
 
 
 class FieldDef(BaseModel):
@@ -56,6 +60,7 @@ class ScheduleRuleRequest(BaseModel):
     weekdays: list[int] = []
     max_submissions_per_student: int = 0
     date: Optional[_DateField] = None
+    sync_discord: bool = False
 
 
 @router.post("/classes/{class_id}/templates", status_code=status.HTTP_201_CREATED)
@@ -96,6 +101,25 @@ async def create_schedule_rule(
     )
     await rule.insert()
     assignments = await expand_schedule_rule(rule)
+
+    if body.sync_discord:
+        from core.classes.models import Class
+        from tasks.templates.models import TaskTemplate
+        cls = await Class.get(class_id)
+        if cls and cls.discord_webhook_url:
+            tmpl = await TaskTemplate.get(body.template_id)
+            if tmpl:
+                date_str = str(body.date or body.start_date or "")
+                try:
+                    await discord_send_task_embed(
+                        webhook_url=cls.discord_webhook_url,
+                        task_name=tmpl.name,
+                        description=tmpl.description,
+                        date=date_str or None,
+                    )
+                except Exception:
+                    logger.error("Discord send failed for class %s", class_id)
+
     return {"assignments_created": len(assignments)}
 
 
@@ -273,4 +297,11 @@ async def template_assign_page(
     from core.classes.models import Class
     cls = await Class.get(tmpl.class_id)
     class_name = cls.name if cls else tmpl.class_id
-    return {"current_user": teacher, "class_id": tmpl.class_id, "class_name": class_name, "template": tmpl}
+    has_discord_webhook = bool(cls and cls.discord_webhook_url)
+    return {
+        "current_user": teacher,
+        "class_id": tmpl.class_id,
+        "class_name": class_name,
+        "template": tmpl,
+        "has_discord_webhook": has_discord_webhook,
+    }
