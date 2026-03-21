@@ -502,3 +502,40 @@ updated: 2026-03-21
 code:
   - CLAUDE.md
 -->
+
+---
+### Requirement: Class stores optional Discord Webhook URL
+
+The Class model SHALL include an optional field `discord_webhook_url` (string, nullable) for storing the class Discord integration endpoint.
+
+#### Scenario: New class has null webhook URL
+
+- **WHEN** a new class is created
+- **THEN** `discord_webhook_url` SHALL default to null
+
+#### Scenario: Webhook URL is only visible to class managers
+
+- **WHEN** a student views class information
+- **THEN** the `discord_webhook_url` SHALL NOT be exposed in any student-facing API response or template
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+-->
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+code:
+  - src/integrations/discord/service.py
+  - src/tasks/templates/router.py
+  - src/core/classes/router.py
+  - src/templates/teacher/class_hub.html
+  - src/integrations/__init__.py
+  - src/templates/teacher/template_assign.html
+  - src/core/classes/models.py
+  - src/pages/router.py
+  - src/integrations/discord/__init__.py
+tests:
+  - tests/test_discord_integration.py
+-->
