@@ -25,6 +25,18 @@ from tasks.templates.models import TaskTemplate
 router = APIRouter(tags=["submissions"])
 
 
+async def _student_sidebar_classes(user_id: str) -> list[dict]:
+    """Return the list of non-archived classes a student belongs to (for sidebar)."""
+    from core.classes.models import Class, ClassMembership
+    memberships = await ClassMembership.find(ClassMembership.user_id == user_id).to_list()
+    result = []
+    for m in memberships:
+        c = await Class.get(m.class_id)
+        if c and not c.is_archived:
+            result.append({"class_id": m.class_id, "class_name": c.name})
+    return result
+
+
 class SubmitRequest(BaseModel):
     field_values: dict[str, Any]
     submission_date: date | None = None
@@ -315,9 +327,16 @@ async def submission_rejection_page(
     if sub.student_id != str(current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
+    sidebar_classes = await _student_sidebar_classes(str(current_user.id))
     return {
         "current_user": current_user,
         "submission": sub,
+        "classes": sidebar_classes,
+        "can_manage_class": False,
+        "can_manage_all_classes": False,
+        "can_manage_tasks": False,
+        "can_manage_users": False,
+        "is_sys_admin": False,
     }
 
 
@@ -331,6 +350,7 @@ async def learning_history_page(
         TaskSubmission.student_id == str(current_user.id)
     ).sort(-TaskSubmission.submitted_at).limit(50).to_list()
 
+    sidebar_classes = await _student_sidebar_classes(str(current_user.id))
     return {
         "current_user": current_user,
         "submissions": subs,
@@ -339,7 +359,7 @@ async def learning_history_page(
         "can_manage_all_classes": False,
         "can_manage_users": False,
         "is_sys_admin": False,
-        "classes": [],
+        "classes": sidebar_classes,
     }
 
 
@@ -368,6 +388,7 @@ async def class_history_page(
         TaskSubmission.student_id == str(current_user.id),
     ).sort(-TaskSubmission.submitted_at).limit(100).to_list()
 
+    sidebar_classes = await _student_sidebar_classes(str(current_user.id))
     return {
         "current_user": current_user,
         "class_id": class_id,
@@ -378,7 +399,7 @@ async def class_history_page(
         "can_manage_all_classes": False,
         "can_manage_users": False,
         "is_sys_admin": False,
-        "classes": [],
+        "classes": sidebar_classes,
     }
 
 

@@ -53,8 +53,8 @@
 
 ## 11. 學生 Sidebar 與新增班級按鈕修正
 
-- [ ] 11.1 修改 `src/templates/shared/base.html`：學生（非教師）sidebar 新增「我的班級」區塊，列出各班入口（展開後含任務歷史、積分排行連結）（Student sidebar shows class navigation / Student sidebar lists enrolled classes / Class entry links to task history）
-- [ ] 11.2 修改「新增班級」按鈕 href 為 `?create_class=1` redirect 邏輯，移除 `dispatchEvent`（新增班級按鈕改為帶 Query Param 的連結 / Create class button navigates to dashboard with param / Create class button works from any page）
+- [x] 11.1 修改 `src/templates/shared/base.html`：學生（非教師）sidebar 新增「我的班級」區塊，列出各班入口（展開後含任務歷史、積分排行連結）（Student sidebar shows class navigation / Student sidebar lists enrolled classes / Class entry links to task history）
+- [x] 11.2 修改「新增班級」按鈕 href 為 `?create_class=1` redirect 邏輯，移除 `dispatchEvent`（新增班級按鈕改為帶 Query Param 的連結 / Create class button navigates to dashboard with param / Create class button works from any page）
 
 ## 12. 學生班級頁面
 
@@ -62,8 +62,8 @@
 
 ## 13. 測試
 
-- [ ] 13.1 新增 `tests/test_attendance_management.py`：測試出席管理端點（遲到補分、撤銷、重複校正覆蓋、範圍驗證）
-- [ ] 13.2 新增 `tests/test_submission_approval.py`：測試 approve/reject 端點（積分撤銷、重發、退回後再 approve、空原因驗證）
-- [ ] 13.3 新增 `tests/test_resubmission.py`：測試補繳流程（parent_submission_id、期限過期、已有 pending 時不允許補繳）
-- [ ] 13.4 更新 `tests/test_submissions.py`：補充新查重邏輯（rejected 不計入唯一性）的測試
-- [ ] 13.5 更新 `tests/test_pages.py`：新增 rejection detail 頁面、attendance 頁面的存取控制測試
+- [x] 13.1 新增 `tests/test_attendance_management.py`：測試出席管理端點（遲到補分、撤銷、重複校正覆蓋、範圍驗證）
+- [x] 13.2 新增 `tests/test_submission_approval.py`：測試 approve/reject 端點（積分撤銷、重發、退回後再 approve、空原因驗證）
+- [x] 13.3 新增 `tests/test_resubmission.py`：測試補繳流程（parent_submission_id、期限過期、已有 pending 時不允許補繳）
+- [x] 13.4 更新 `tests/test_submissions.py`：補充新查重邏輯（rejected 不計入唯一性）的測試
+- [x] 13.5 更新 `tests/test_pages.py`：新增 rejection detail 頁面、attendance 頁面的存取控制測試

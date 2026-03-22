@@ -135,10 +135,12 @@ async def test_new_submission_has_pending_status(db, student, template):
 
 
 async def test_rejected_submission_allows_resubmission(db, student, template):
-    """A rejected submission does not block a new submission (Resubmission allowed after rejection)."""
+    """A rejected submission with a future deadline allows a new submission (Resubmission allowed after rejection)."""
+    from datetime import datetime, timezone, timedelta
     from tasks.submissions.service import submit_task
     sub = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "first"})
     sub.status = "rejected"
+    sub.resubmit_deadline = datetime.now(timezone.utc) + timedelta(days=3)
     await sub.save()
     # Should succeed without raising
     sub2 = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "retry"})
