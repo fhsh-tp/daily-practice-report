@@ -67,9 +67,8 @@
             </span>
           </td>
           <td class="px-5 py-3.5">
-            <form method="post"
-                  action="{{ url_for('revoke_student_points', class_id=class_id, student_id=m.student_id) }}"
-                  class="flex items-center gap-2 flex-wrap">
+            <form class="revoke-form flex items-center gap-2 flex-wrap"
+                  data-url="{{ url_for('revoke_student_points', class_id=class_id, student_id=m.student_id) }}">
               <input type="number" name="amount" placeholder="積分" min="1" max="{{ m.balance }}" required
                      class="w-20 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
               <input type="text" name="reason" placeholder="原因" required
@@ -91,4 +90,36 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.revoke-form').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const url = form.dataset.url;
+    const amount = parseInt(form.querySelector('[name="amount"]').value, 10);
+    const reason = form.querySelector('[name="reason"]').value;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, reason }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        alert('追回失敗：' + (err.detail || resp.status));
+        return;
+      }
+      location.reload();
+    } catch (err) {
+      alert('網路錯誤：' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
 {% endblock %}
