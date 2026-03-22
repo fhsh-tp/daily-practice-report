@@ -1,110 +1,169 @@
-# submission-review Specification
-
-## Purpose
-
-TBD - created by syncing change 'submission-review-and-history'. Update Purpose after archive.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Teacher can view all student submissions for a class
 
-The system SHALL provide a submission review page at `/pages/teacher/class/<class_id>/submissions` that lists all student submissions for the given class.
+Teachers SHALL be able to view all student submissions for a class via a page at `GET /pages/teacher/class/{class_id}/submissions`. The page SHALL display submissions grouped by student with each submission's status badge (pending / approved / rejected), submission content, and review actions.
 
-#### Scenario: Review page lists submissions
+#### Scenario: Submission list shows status badge
 
-- **WHEN** a teacher with class management permission navigates to the review page
-- **THEN** the page SHALL display all TaskSubmission records for that class, grouped by student
+- **WHEN** a teacher views the submission review page
+- **THEN** each submission SHALL display a status badge indicating "pending", "approved", or "rejected"
 
-#### Scenario: Unauthorized access is rejected
+#### Scenario: Approved submission shows approved state
 
-- **WHEN** a user without class management permission accesses the review page
-- **THEN** the system SHALL return 403 or redirect to dashboard
+- **WHEN** a submission has `status: "approved"`
+- **THEN** the page SHALL display a green "已確認" badge and the approve button SHALL reflect the confirmed state
+
+## ADDED Requirements
 
 
 <!-- @trace
-source: submission-review-and-history
-updated: 2026-03-20
+source: task-review-attendance-dashboard
+updated: 2026-03-22
 code:
-  - src/gamification/points/router.py
-  - src/templates/shared/base.html
-  - src/gamification/points/service.py
-  - src/templates/teacher/submission_review.html
+  - src/templates/student/dashboard.html
+  - src/gamification/points/models.py
   - src/templates/student/learning_history.html
+  - src/tasks/checkin/models.py
+  - src/tasks/checkin/router.py
   - src/tasks/submissions/models.py
+  - src/templates/shared/base.html
+  - src/templates/teacher/points_manage.html
+  - src/templates/teacher/attendance_manage.html
+  - src/templates/student/submit_task.html
+  - src/templates/student/class_history.html
+  - src/tasks/submissions/service.py
+  - src/pages/router.py
+  - src/main.py
   - src/tasks/submissions/router.py
+  - src/templates/teacher/submission_review.html
+  - src/templates/student/submission_rejection.html
+  - src/community/feed/models.py
 tests:
-  - tests/test_task_scheduling.py
-  - tests/test_points.py
+  - tests/test_submission_approval.py
+  - tests/test_resubmission.py
+  - tests/test_attendance_management.py
+  - tests/test_pages.py
   - tests/test_submissions.py
-  - tests/test_submission_review.py
-  - tests/test_checkin_config_page.py
 -->
+
+### Requirement: Teacher approves submission from review page
+
+The teacher submission review page SHALL provide an "確認" (approve) button per submission. Clicking it SHALL call `POST /api/submissions/{submission_id}/approve` and update the submission's status in the UI without a full page reload.
+
+#### Scenario: Teacher clicks approve
+
+- **WHEN** a teacher clicks "確認" on a pending or rejected submission
+- **THEN** the system SHALL call the approve endpoint, update the submission status badge to "已確認", and remain on the review page
+
+
+<!-- @trace
+source: task-review-attendance-dashboard
+updated: 2026-03-22
+code:
+  - src/templates/student/dashboard.html
+  - src/gamification/points/models.py
+  - src/templates/student/learning_history.html
+  - src/tasks/checkin/models.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/models.py
+  - src/templates/shared/base.html
+  - src/templates/teacher/points_manage.html
+  - src/templates/teacher/attendance_manage.html
+  - src/templates/student/submit_task.html
+  - src/templates/student/class_history.html
+  - src/tasks/submissions/service.py
+  - src/pages/router.py
+  - src/main.py
+  - src/tasks/submissions/router.py
+  - src/templates/teacher/submission_review.html
+  - src/templates/student/submission_rejection.html
+  - src/community/feed/models.py
+tests:
+  - tests/test_submission_approval.py
+  - tests/test_resubmission.py
+  - tests/test_attendance_management.py
+  - tests/test_pages.py
+  - tests/test_submissions.py
+-->
+
+### Requirement: Teacher rejects submission from review page
+
+The teacher submission review page SHALL provide a "退回" (reject) flow per submission. The flow SHALL open an inline panel or modal where the teacher writes the rejection reason and optionally sets a resubmit deadline before confirming. Confirming SHALL call `POST /api/submissions/{submission_id}/reject`.
+
+#### Scenario: Teacher opens reject panel
+
+- **WHEN** a teacher clicks "退回" on a submission
+- **THEN** the page SHALL show an inline panel or modal with a required text area for rejection reason and an optional date-time picker for resubmit deadline
+
+#### Scenario: Teacher confirms rejection
+
+- **WHEN** a teacher fills in the rejection reason and confirms
+- **THEN** the system SHALL call the reject endpoint, update the status badge to "已退回", and remain on the review page
+
+#### Scenario: Empty rejection reason blocked
+
+- **WHEN** a teacher confirms rejection without a reason
+- **THEN** the UI SHALL show a validation error and SHALL NOT submit the request
+
+## Requirements
+
+
+<!-- @trace
+source: task-review-attendance-dashboard
+updated: 2026-03-22
+code:
+  - src/templates/student/dashboard.html
+  - src/gamification/points/models.py
+  - src/templates/student/learning_history.html
+  - src/tasks/checkin/models.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/models.py
+  - src/templates/shared/base.html
+  - src/templates/teacher/points_manage.html
+  - src/templates/teacher/attendance_manage.html
+  - src/templates/student/submit_task.html
+  - src/templates/student/class_history.html
+  - src/tasks/submissions/service.py
+  - src/pages/router.py
+  - src/main.py
+  - src/tasks/submissions/router.py
+  - src/templates/teacher/submission_review.html
+  - src/templates/student/submission_rejection.html
+  - src/community/feed/models.py
+tests:
+  - tests/test_submission_approval.py
+  - tests/test_resubmission.py
+  - tests/test_attendance_management.py
+  - tests/test_pages.py
+  - tests/test_submissions.py
+-->
+
+### Requirement: Teacher approves submission from review page
+
+The teacher submission review page SHALL provide an "確認" (approve) button per submission. Clicking it SHALL call `POST /api/submissions/{submission_id}/approve` and update the submission's status in the UI without a full page reload.
+
+#### Scenario: Teacher clicks approve
+
+- **WHEN** a teacher clicks "確認" on a pending or rejected submission
+- **THEN** the system SHALL call the approve endpoint, update the submission status badge to "已確認", and remain on the review page
 
 ---
-### Requirement: Teacher can leave a comment on a submission
+### Requirement: Teacher rejects submission from review page
 
-The system SHALL allow a teacher to add or update a comment on any submission via `POST /api/submissions/<submission_id>/comment`.
+The teacher submission review page SHALL provide a "退回" (reject) flow per submission. The flow SHALL open an inline panel or modal where the teacher writes the rejection reason and optionally sets a resubmit deadline before confirming. Confirming SHALL call `POST /api/submissions/{submission_id}/reject`.
 
-#### Scenario: Comment is saved
+#### Scenario: Teacher opens reject panel
 
-- **WHEN** a teacher submits a non-empty comment for a submission
-- **THEN** the system SHALL save the comment to `teacher_comment` and record `reviewed_at` timestamp
+- **WHEN** a teacher clicks "退回" on a submission
+- **THEN** the page SHALL show an inline panel or modal with a required text area for rejection reason and an optional date-time picker for resubmit deadline
 
-#### Scenario: Comment can be overwritten
+#### Scenario: Teacher confirms rejection
 
-- **WHEN** a teacher submits a new comment for a submission that already has a comment
-- **THEN** the old comment SHALL be replaced with the new one
+- **WHEN** a teacher fills in the rejection reason and confirms
+- **THEN** the system SHALL call the reject endpoint, update the status badge to "已退回", and remain on the review page
 
+#### Scenario: Empty rejection reason blocked
 
-<!-- @trace
-source: submission-review-and-history
-updated: 2026-03-20
-code:
-  - src/gamification/points/router.py
-  - src/templates/shared/base.html
-  - src/gamification/points/service.py
-  - src/templates/teacher/submission_review.html
-  - src/templates/student/learning_history.html
-  - src/tasks/submissions/models.py
-  - src/tasks/submissions/router.py
-tests:
-  - tests/test_task_scheduling.py
-  - tests/test_points.py
-  - tests/test_submissions.py
-  - tests/test_submission_review.py
-  - tests/test_checkin_config_page.py
--->
-
----
-### Requirement: Teacher can deduct points from a student
-
-The system SHALL allow a teacher to deduct points from a student via `POST /api/points/deduct`, specifying student_id, class_id, amount, and reason.
-
-#### Scenario: Points are deducted
-
-- **WHEN** a teacher submits a valid deduction request with a reason
-- **THEN** the system SHALL create a `PointLedger` entry with `entry_type: "teacher_deduct"` and the student's balance SHALL decrease accordingly
-
-#### Scenario: Deduction requires reason
-
-- **WHEN** a teacher submits a deduction request without a reason
-- **THEN** the system SHALL return a 422 error and SHALL NOT deduct any points
-
-<!-- @trace
-source: submission-review-and-history
-updated: 2026-03-20
-code:
-  - src/gamification/points/router.py
-  - src/templates/shared/base.html
-  - src/gamification/points/service.py
-  - src/templates/teacher/submission_review.html
-  - src/templates/student/learning_history.html
-  - src/tasks/submissions/models.py
-  - src/tasks/submissions/router.py
-tests:
-  - tests/test_task_scheduling.py
-  - tests/test_points.py
-  - tests/test_submissions.py
-  - tests/test_submission_review.py
-  - tests/test_checkin_config_page.py
--->
+- **WHEN** a teacher confirms rejection without a reason
+- **THEN** the UI SHALL show a validation error and SHALL NOT submit the request
