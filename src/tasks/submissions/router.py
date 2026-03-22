@@ -195,6 +195,132 @@ async def submission_review_page(
     }
 
 
+class RejectRequest(BaseModel):
+    rejection_reason: str
+    resubmit_deadline: str | None = None  # ISO 8601 datetime string, e.g. "2026-03-29T23:59:00Z"
+
+
+@router.post("/api/submissions/{submission_id}/approve")
+async def approve_submission(
+    submission_id: str,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    """Approve a submission. Re-awards points if previously rejected.
+
+    Implements: Teacher approves a task submission /
+                Teacher approves a previously rejected submission
+    """
+    from gamification.points.models import ClassPointConfig
+    from gamification.points.service import award_points
+    from community.feed.models import FeedPost
+
+    sub = await TaskSubmission.get(submission_id)
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    was_rejected = sub.status == "rejected"
+    sub.status = "approved"
+    await sub.save()
+
+    if was_rejected:
+        config = await ClassPointConfig.find_one(ClassPointConfig.class_id == sub.class_id)
+        pts = config.submission_points if config else 0
+        await award_points(
+            student_id=sub.student_id,
+            class_id=sub.class_id,
+            amount=pts,
+            source_event="submission_reapproved",
+            source_id=str(sub.id),
+            created_by=str(teacher.id),
+        )
+
+    await FeedPost(
+        submission_id=str(sub.id),
+        student_id=sub.student_id,
+        class_id=sub.class_id,
+        event_type="submission_approved",
+    ).insert()
+
+    return {"status": "approved", "submission_id": str(sub.id)}
+
+
+@router.post("/api/submissions/{submission_id}/reject")
+async def reject_submission(
+    submission_id: str,
+    body: RejectRequest,
+    teacher: User = Depends(require_permission(MANAGE_TASKS)),
+):
+    """Reject a submission with a reason. Revokes submission points.
+
+    Implements: Teacher rejects a task submission /
+                Rejection without reason is rejected
+    """
+    if not body.rejection_reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="rejection_reason is required",
+        )
+
+    from datetime import datetime, timezone as tz
+    from gamification.points.models import ClassPointConfig
+    from gamification.points.service import award_points
+    from community.feed.models import FeedPost
+
+    sub = await TaskSubmission.get(submission_id)
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    sub.status = "rejected"
+    sub.rejection_reason = body.rejection_reason.strip()
+    if body.resubmit_deadline:
+        sub.resubmit_deadline = datetime.fromisoformat(body.resubmit_deadline.replace("Z", "+00:00"))
+    await sub.save()
+
+    config = await ClassPointConfig.find_one(ClassPointConfig.class_id == sub.class_id)
+    pts = config.submission_points if config else 0
+    await award_points(
+        student_id=sub.student_id,
+        class_id=sub.class_id,
+        amount=-pts,
+        source_event="submission_rejected",
+        source_id=str(sub.id),
+        created_by=str(teacher.id),
+    )
+
+    await FeedPost(
+        submission_id=str(sub.id),
+        student_id=sub.student_id,
+        class_id=sub.class_id,
+        event_type="submission_rejected",
+    ).insert()
+
+    return {"status": "rejected", "submission_id": str(sub.id)}
+
+
+@router.get("/pages/student/submissions/{submission_id}/rejection", name="submission_rejection_page")
+@webpage.page("student/submission_rejection.html")
+async def submission_rejection_page(
+    request: Request,
+    submission_id: str,
+    current_user: User = Depends(get_page_user),
+):
+    """Student views rejection detail for their own rejected submission.
+
+    Implements: Student views rejection detail page /
+                Non-owner cannot access rejection detail
+    """
+    sub = await TaskSubmission.get(submission_id)
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    if sub.student_id != str(current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    return {
+        "current_user": current_user,
+        "submission": sub,
+    }
+
+
 @router.get("/pages/student/history", name="learning_history_page")
 @webpage.page("student/learning_history.html")
 async def learning_history_page(
@@ -207,6 +333,45 @@ async def learning_history_page(
 
     return {
         "current_user": current_user,
+        "submissions": subs,
+        "can_manage_tasks": False,
+        "can_manage_class": False,
+        "can_manage_all_classes": False,
+        "can_manage_users": False,
+        "is_sys_admin": False,
+        "classes": [],
+    }
+
+
+@router.get("/pages/student/classes/{class_id}/history", name="class_history_page")
+@webpage.page("student/class_history.html")
+async def class_history_page(
+    request: Request,
+    class_id: str,
+    current_user: User = Depends(get_page_user),
+):
+    from core.classes.models import Class, ClassMembership
+
+    # Verify membership
+    membership = await ClassMembership.find_one(
+        ClassMembership.class_id == class_id,
+        ClassMembership.user_id == str(current_user.id),
+    )
+    if not membership:
+        raise HTTPException(status_code=403, detail="非此班級成員")
+
+    cls = await Class.get(class_id)
+    class_name = cls.name if cls else class_id
+
+    subs = await TaskSubmission.find(
+        TaskSubmission.class_id == class_id,
+        TaskSubmission.student_id == str(current_user.id),
+    ).sort(-TaskSubmission.submitted_at).limit(100).to_list()
+
+    return {
+        "current_user": current_user,
+        "class_id": class_id,
+        "class_name": class_name,
         "submissions": subs,
         "can_manage_tasks": False,
         "can_manage_class": False,
@@ -231,8 +396,16 @@ async def submit_task_page(
 
     today_template = await get_template_for_date(class_id, date.today())
     if today_template is None:
-        return {"current_user": current_user, "class_id": class_id, "template": None, "error": "今日無任務模板", "success": None, "points_earned": None}
-    return {"current_user": current_user, "class_id": class_id, "template": today_template, "error": error, "success": bool(success), "points_earned": points}
+        return {"current_user": current_user, "class_id": class_id, "template": None, "error": "今日無任務模板", "success": None, "points_earned": None, "rejected_submission": None}
+
+    # Check for a rejected submission with a valid resubmit deadline
+    rejected_submission = await TaskSubmission.find_one(
+        TaskSubmission.template_id == str(today_template.id),
+        TaskSubmission.student_id == str(current_user.id),
+        TaskSubmission.class_id == class_id,
+        TaskSubmission.status == "rejected",
+    )
+    return {"current_user": current_user, "class_id": class_id, "template": today_template, "error": error, "success": bool(success), "points_earned": points, "rejected_submission": rejected_submission}
 
 
 @router.post("/classes/{class_id}/submit")

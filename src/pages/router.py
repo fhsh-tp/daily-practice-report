@@ -60,6 +60,7 @@ async def login_form(
 async def dashboard_page(
     request: Request,
     current_user: User = Depends(get_page_user),
+    create_class: int = 0,
 ):
     from datetime import date, datetime, timezone
 
@@ -105,6 +106,23 @@ async def dashboard_page(
         except Exception:
             owner_display_name = ""
 
+        # Today's submission status for this student in this class
+        submitted_today = False
+        submission_status = None
+        submission_id = None
+        if today_template:
+            from tasks.submissions.models import TaskSubmission
+            sub = await TaskSubmission.find_one(
+                TaskSubmission.template_id == str(today_template.id),
+                TaskSubmission.student_id == str(current_user.id),
+                TaskSubmission.class_id == m.class_id,
+                TaskSubmission.status != "rejected",
+            )
+            if sub:
+                submitted_today = True
+                submission_status = sub.status
+                submission_id = str(sub.id)
+
         classes.append({
             "class_id": m.class_id,
             "class_name": cls.name,
@@ -117,6 +135,9 @@ async def dashboard_page(
             "reason": checkin_result.reason,
             "today_template": today_template,
             "member_count": member_count,
+            "submitted_today": submitted_today,
+            "submission_status": submission_status,
+            "submission_id": submission_id,
         })
 
     from gamification.badges.models import BadgeAward
@@ -167,6 +188,7 @@ async def dashboard_page(
         "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
         "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
         "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "open_create_class_modal": bool(create_class),
     }
 
 

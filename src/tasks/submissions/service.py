@@ -77,6 +77,26 @@ async def submit_task(
     if existing:
         raise ValueError("Student has already submitted for this template on this date")
 
+    # Check for a rejected submission — resubmission only allowed if deadline is set and not passed
+    # (No resubmit when deadline has passed or was not set)
+    from datetime import datetime, timezone
+    rejected = await TaskSubmission.find_one(
+        TaskSubmission.template_id == str(template.id),
+        TaskSubmission.student_id == str(student.id),
+        TaskSubmission.date == submission_date,
+        TaskSubmission.status == "rejected",
+    )
+    parent_submission_id: str | None = None
+    if rejected:
+        if not rejected.resubmit_deadline:
+            raise ValueError("此作業已退回且未設定補繳期限，不允許補繳")
+        deadline_aware = rejected.resubmit_deadline
+        if deadline_aware.tzinfo is None:
+            deadline_aware = deadline_aware.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > deadline_aware:
+            raise ValueError("補繳期限已過，無法提交")
+        parent_submission_id = str(rejected.id)
+
     # Validate fields
     _validate_field_values(template, field_values)
 
@@ -95,6 +115,7 @@ async def submit_task(
         student_id=str(student.id),
         class_id=class_id,
         date=submission_date,
+        parent_submission_id=parent_submission_id,
     )
     await submission.insert()
     return submission

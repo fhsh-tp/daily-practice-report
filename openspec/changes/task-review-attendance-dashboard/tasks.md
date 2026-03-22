@@ -16,40 +16,40 @@
 
 ## 4. 作業審查後端（AttendanceCorrection 記錄例外，不修改 CheckinRecord）
 
-- [ ] 4.1 在 `src/tasks/submissions/router.py` 新增 `POST /api/submissions/{submission_id}/approve` 端點：設定 `status="approved"`；若前狀態為 `"rejected"` 則補發積分（Teacher approves a task submission / Teacher approves a previously rejected submission）
-- [ ] 4.2 在 `src/tasks/submissions/router.py` 新增 `POST /api/submissions/{submission_id}/reject` 端點：設定 `status="rejected"`、儲存 `rejection_reason` 與 `resubmit_deadline`，建立負數 `PointTransaction`；`rejection_reason` 為空時回傳 HTTP 422（Teacher rejects a task submission / Rejection without reason is rejected）
-- [ ] 4.3 在退回後，建立動態 feed 事件（`submission_rejected`）；在確認後建立 `submission_approved` 事件（Student sees submission review status in activity feed / Approved submission appears in feed / Rejected submission appears in feed）
+- [x] 4.1 在 `src/tasks/submissions/router.py` 新增 `POST /api/submissions/{submission_id}/approve` 端點：設定 `status="approved"`；若前狀態為 `"rejected"` 則補發積分（Teacher approves a task submission / Teacher approves a previously rejected submission）
+- [x] 4.2 在 `src/tasks/submissions/router.py` 新增 `POST /api/submissions/{submission_id}/reject` 端點：設定 `status="rejected"`、儲存 `rejection_reason` 與 `resubmit_deadline`，建立負數 `PointTransaction`；`rejection_reason` 為空時回傳 HTTP 422（Teacher rejects a task submission / Rejection without reason is rejected）
+- [x] 4.3 在退回後，建立動態 feed 事件（`submission_rejected`）；在確認後建立 `submission_approved` 事件（Student sees submission review status in activity feed / Approved submission appears in feed / Rejected submission appears in feed）
 
 ## 5. 作業審查前端
 
-- [ ] 5.1 重構 `src/templates/teacher/submission_review.html`：為每筆提交新增狀態 badge（pending/approved/rejected）、「確認」按鈕（呼叫 approve 端點）、「退回」inline panel（含原因欄位與補繳期限選擇器）（Teacher can view all student submissions for a class / Teacher approves submission from review page / Teacher rejects submission from review page / Teacher opens reject panel / Empty rejection reason blocked / Submission list shows status badge）
-- [ ] 5.2 確認 page 留在審查頁不跳轉，操作後局部更新 badge（Teacher clicks approve / Teacher confirms rejection）
+- [x] 5.1 重構 `src/templates/teacher/submission_review.html`：為每筆提交新增狀態 badge（pending/approved/rejected）、「確認」按鈕（呼叫 approve 端點）、「退回」inline panel（含原因欄位與補繳期限選擇器）（Teacher can view all student submissions for a class / Teacher approves submission from review page / Teacher rejects submission from review page / Teacher opens reject panel / Empty rejection reason blocked / Submission list shows status badge）
+- [x] 5.2 確認 page 留在審查頁不跳轉，操作後局部更新 badge（Teacher clicks approve / Teacher confirms rejection）
 
 ## 6. 學生退回通知
 
-- [ ] 6.1 在 `src/tasks/submissions/router.py` 新增 `GET /pages/student/submissions/{submission_id}/rejection` 頁面路由，驗證擁有者身分（Student views rejection detail page / Non-owner cannot access rejection detail）
-- [ ] 6.2 新增 `src/templates/student/submission_rejection.html`，顯示退回原因、補繳期限與原始提交內容（Student views rejection detail）
-- [ ] 6.3 修改 `src/templates/student/learning_history.html`：顯示 `status` badge，rejected 記錄顯示原因與退回詳情連結（History shows review status / Rejected submission shows link to detail）
+- [x] 6.1 在 `src/tasks/submissions/router.py` 新增 `GET /pages/student/submissions/{submission_id}/rejection` 頁面路由，驗證擁有者身分（Student views rejection detail page / Non-owner cannot access rejection detail）
+- [x] 6.2 新增 `src/templates/student/submission_rejection.html`，顯示退回原因、補繳期限與原始提交內容（Student views rejection detail）
+- [x] 6.3 修改 `src/templates/student/learning_history.html`：顯示 `status` badge，rejected 記錄顯示原因與退回詳情連結（History shows review status / Rejected submission shows link to detail）
 
 ## 7. 補繳流程
 
-- [ ] 7.1 修改 `src/tasks/submissions/router.py` 的提交端點：若學生有 rejected 提交且 `resubmit_deadline` 未過，允許建立新提交並設定 `parent_submission_id`（Student resubmits a rejected task / No resubmit when deadline has passed or was not set）
-- [ ] 7.2 在補繳頁（`submit_task.html`）顯示補繳截止日期提示（若有 rejected 提交且有期限）
+- [x] 7.1 修改 `src/tasks/submissions/router.py` 的提交端點：若學生有 rejected 提交且 `resubmit_deadline` 未過，允許建立新提交並設定 `parent_submission_id`（Student resubmits a rejected task / No resubmit when deadline has passed or was not set）
+- [x] 7.2 在補繳頁（`submit_task.html`）顯示補繳截止日期提示（若有 rejected 提交且有期限）
 
 ## 8. 出席管理頁面
 
-- [ ] 8.1 新增 `src/templates/teacher/attendance_manage.html`，依日期顯示學生出席狀態，支援日期選擇器，預設今日（Teacher views daily attendance list / Page defaults to today's date / AttendanceCorrection reflects current status on attendance page）
-- [ ] 8.2 頁面內嵌各學生的遲到補分輸入（1 ~ checkin_points 範圍限制）與「撤銷已到」按鈕，操作後局部更新（Teacher marks absent student as late / Teacher revokes check-in for student who was actually absent）
+- [x] 8.1 新增 `src/templates/teacher/attendance_manage.html`，依日期顯示學生出席狀態，支援日期選擇器，預設今日（Teacher views daily attendance list / Page defaults to today's date / AttendanceCorrection reflects current status on attendance page）
+- [x] 8.2 頁面內嵌各學生的遲到補分輸入（1 ~ checkin_points 範圍限制）與「撤銷已到」按鈕，操作後局部更新（Teacher marks absent student as late / Teacher revokes check-in for student who was actually absent）
 
 ## 9. 積分管理頁面整合
 
-- [ ] 9.1 在 `src/templates/teacher/points_manage.html` 新增出席管理連結卡片或按鈕，導向 attendance 頁面（Teacher accesses attendance management from points manage page）
+- [x] 9.1 在 `src/templates/teacher/points_manage.html` 新增出席管理連結卡片或按鈕，導向 attendance 頁面（Teacher accesses attendance management from points manage page）
 
 ## 10. 學生 Dashboard 重構
 
-- [ ] 10.1 修改 `src/pages/router.py` 的 dashboard 路由，回傳所有班級當天任務資料（含班級名稱、老師姓名、任務名稱、已繳狀態）（Student dashboard shows today's tasks across all classes with search）
-- [ ] 10.2 重構 `src/templates/student/dashboard.html`：移除舊班級管理卡片，改為任務卡列表，新增 client-side 搜尋輸入（Student dashboard layout / Student searches tasks by task name / No tasks today shows empty state per class / Dashboard shows task cards not class management cards / 學生 Dashboard 搜尋為 Client-side）
-- [ ] 10.3 Dashboard 偵測 `?create_class=1` query param，自動開啟新增班級 modal（Dashboard opens modal when param present）
+- [x] 10.1 修改 `src/pages/router.py` 的 dashboard 路由，回傳所有班級當天任務資料（含班級名稱、老師姓名、任務名稱、已繳狀態）（Student dashboard shows today's tasks across all classes with search）
+- [x] 10.2 重構 `src/templates/student/dashboard.html`：移除舊班級管理卡片，改為任務卡列表，新增 client-side 搜尋輸入（Student dashboard layout / Student searches tasks by task name / No tasks today shows empty state per class / Dashboard shows task cards not class management cards / 學生 Dashboard 搜尋為 Client-side）
+- [x] 10.3 Dashboard 偵測 `?create_class=1` query param，自動開啟新增班級 modal（Dashboard opens modal when param present）
 
 ## 11. 學生 Sidebar 與新增班級按鈕修正
 
@@ -58,7 +58,7 @@
 
 ## 12. 學生班級頁面
 
-- [ ] 12.1 新增學生班級任務歷史頁面路由與模板（`src/templates/student/class_history.html`），顯示該班歷史提交記錄與審查狀態（Student can view learning history with review status）
+- [x] 12.1 新增學生班級任務歷史頁面路由與模板（`src/templates/student/class_history.html`），顯示該班歷史提交記錄與審查狀態（Student can view learning history with review status）
 
 ## 13. 測試
 
