@@ -1,6 +1,6 @@
 """Check-in router."""
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import date as date_type, datetime, timezone
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -173,6 +173,185 @@ async def checkin_config_page(
         "config": config_data,
         "success": success,
     }
+
+
+class AttendanceCorrectionRequest(BaseModel):
+    student_id: str
+    date: str  # "YYYY-MM-DD"
+    status: Literal["late", "absent"]
+    partial_points: int | None = None  # required when status=="late"
+
+
+@router.get("/pages/teacher/classes/{class_id}/attendance", name="attendance_manage_page")
+@webpage.page("teacher/attendance_manage.html")
+async def attendance_manage_page(
+    request: Request,
+    class_id: str,
+    target_date: str | None = None,
+    teacher: User = Depends(get_page_user),
+):
+    """Teacher views daily attendance list for a class (Teacher views daily attendance list)."""
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    if not (teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)):
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    from core.classes.models import Class, ClassMembership
+    from core.users.models import User as UserModel
+    from tasks.checkin.models import CheckinRecord, AttendanceCorrection
+    from gamification.points.models import ClassPointConfig
+
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    # Default to today (Page defaults to today's date)
+    if target_date:
+        selected_date = date_type.fromisoformat(target_date)
+    else:
+        selected_date = date_type.today()
+
+    config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
+    checkin_points = config.checkin_points if config else 5
+
+    memberships = await ClassMembership.find(
+        ClassMembership.class_id == class_id,
+        ClassMembership.role == "student",
+    ).to_list()
+
+    # Load corrections for this date (AttendanceCorrection reflects current status on attendance page)
+    corrections: dict[str, AttendanceCorrection] = {}
+    for corr in await AttendanceCorrection.find(
+        AttendanceCorrection.class_id == class_id,
+        AttendanceCorrection.date == selected_date,
+    ).to_list():
+        corrections[corr.student_id] = corr
+
+    students = []
+    for m in memberships:
+        u = await UserModel.get(m.user_id)
+        if not u:
+            continue
+        has_checkin = await CheckinRecord.find_one(
+            CheckinRecord.student_id == m.user_id,
+            CheckinRecord.class_id == class_id,
+            CheckinRecord.checkin_date == selected_date,
+        ) is not None
+        correction = corrections.get(m.user_id)
+        students.append({
+            "student_id": m.user_id,
+            "display_name": u.display_name,
+            "has_checkin": has_checkin,
+            "correction": correction,
+        })
+
+    # Sidebar classes
+    all_memberships = await ClassMembership.find(
+        ClassMembership.user_id == str(teacher.id)
+    ).to_list()
+    sidebar_classes = []
+    for sm in all_memberships:
+        c = await Class.get(sm.class_id)
+        if c and not c.is_archived:
+            sidebar_classes.append({"class_id": sm.class_id, "class_name": c.name})
+
+    return {
+        "current_user": teacher,
+        "class_id": class_id,
+        "class_name": cls.name,
+        "selected_date": selected_date.isoformat(),
+        "students": students,
+        "checkin_points": checkin_points,
+        "classes": sidebar_classes,
+        "can_manage_class": bool(teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)),
+        "can_manage_all_classes": bool(teacher.permissions & MANAGE_ALL_CLASSES),
+        "can_manage_tasks": bool(teacher.permissions & MANAGE_TASKS),
+        "can_manage_users": bool(teacher.permissions & MANAGE_USERS),
+        "is_sys_admin": bool(teacher.permissions & WRITE_SYSTEM),
+    }
+
+
+@router.post("/api/classes/{class_id}/attendance/correct")
+async def correct_attendance(
+    class_id: str,
+    body: AttendanceCorrectionRequest,
+    teacher: User = Depends(require_permission(MANAGE_CLASS)),
+):
+    """Teacher corrects attendance: late (partial points) or absent (revoke points).
+
+    Implements: Teacher marks absent student as late /
+                Teacher revokes check-in for student who was actually absent /
+                Existing correction is overwritten /
+                Partial points must be between 1 and checkin_points
+    """
+    from tasks.checkin.models import CheckinRecord, AttendanceCorrection
+    from gamification.points.models import ClassPointConfig
+    from gamification.points.service import award_points, deduct_points
+
+    target_date = date_type.fromisoformat(body.date)
+
+    config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
+    checkin_pts = config.checkin_points if config else 5
+
+    # Validate partial_points range for "late" status
+    if body.status == "late":
+        if body.partial_points is None or not (1 <= body.partial_points <= checkin_pts):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"partial_points must be between 1 and {checkin_pts}",
+            )
+
+    # Upsert AttendanceCorrection (Existing correction is overwritten)
+    existing_correction = await AttendanceCorrection.find_one(
+        AttendanceCorrection.class_id == class_id,
+        AttendanceCorrection.student_id == body.student_id,
+        AttendanceCorrection.date == target_date,
+    )
+    if existing_correction:
+        existing_correction.status = body.status
+        existing_correction.partial_points = body.partial_points
+        existing_correction.created_by = str(teacher.id)
+        await existing_correction.save()
+        correction = existing_correction
+    else:
+        correction = AttendanceCorrection(
+            class_id=class_id,
+            student_id=body.student_id,
+            date=target_date,
+            status=body.status,
+            partial_points=body.partial_points,
+            created_by=str(teacher.id),
+        )
+        await correction.insert()
+
+    # Apply point adjustment
+    if body.status == "late":
+        # Award partial points (Teacher marks absent student as late)
+        await award_points(
+            student_id=body.student_id,
+            class_id=class_id,
+            amount=body.partial_points,
+            source_event="checkin_manual_late",
+            source_id=str(correction.id),
+            created_by=str(teacher.id),
+        )
+    else:
+        # Revoke checkin points (Teacher revokes check-in for student who was actually absent)
+        # Only revoke if student actually had a checkin record (and thus received points)
+        has_checkin = await CheckinRecord.find_one(
+            CheckinRecord.student_id == body.student_id,
+            CheckinRecord.class_id == class_id,
+            CheckinRecord.checkin_date == target_date,
+        )
+        if has_checkin:
+            await deduct_points(
+                student_id=body.student_id,
+                class_id=class_id,
+                amount=checkin_pts,
+                reason="checkin_manual_revoke",
+                deducted_by=str(teacher.id),
+            )
+
+    return {"status": body.status, "correction_id": str(correction.id)}
 
 
 @router.get("/classes/{class_id}/checkin-status")

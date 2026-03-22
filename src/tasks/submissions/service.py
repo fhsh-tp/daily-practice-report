@@ -66,11 +66,13 @@ async def submit_task(
                 f"Submission limit reached: max {rule.max_submissions_per_student} per student"
             )
 
-    # Check for duplicate
+    # Check for duplicate — only non-rejected submissions count toward uniqueness
+    # (Rejected submissions allow resubmission per spec)
     existing = await TaskSubmission.find_one(
         TaskSubmission.template_id == str(template.id),
         TaskSubmission.student_id == str(student.id),
         TaskSubmission.date == submission_date,
+        TaskSubmission.status != "rejected",
     )
     if existing:
         raise ValueError("Student has already submitted for this template on this date")

@@ -120,3 +120,34 @@ async def test_new_submission_has_null_comment(db, student, template):
     sub = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "hi"})
     assert sub.teacher_comment is None
     assert sub.reviewed_at is None
+
+
+# --- TaskSubmission review state fields ---
+
+async def test_new_submission_has_pending_status(db, student, template):
+    """New submission status defaults to pending (TaskSubmission stores review state)."""
+    from tasks.submissions.service import submit_task
+    sub = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "hi"})
+    assert sub.status == "pending"
+    assert sub.rejection_reason is None
+    assert sub.resubmit_deadline is None
+    assert sub.parent_submission_id is None
+
+
+async def test_rejected_submission_allows_resubmission(db, student, template):
+    """A rejected submission does not block a new submission (Resubmission allowed after rejection)."""
+    from tasks.submissions.service import submit_task
+    sub = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "first"})
+    sub.status = "rejected"
+    await sub.save()
+    # Should succeed without raising
+    sub2 = await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "retry"})
+    assert sub2.id != sub.id
+
+
+async def test_pending_submission_blocks_duplicate(db, student, template):
+    """A pending submission still blocks a duplicate (Duplicate submission rejected when active submission exists)."""
+    from tasks.submissions.service import submit_task
+    await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "first"})
+    with pytest.raises(ValueError, match="already submitted"):
+        await submit_task(template, "cls1", student, date(2026, 3, 18), {"notes": "dup"})

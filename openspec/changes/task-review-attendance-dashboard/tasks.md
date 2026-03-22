@@ -1,18 +1,18 @@
 ## 1. 資料模型
 
-- [ ] 1.1 在 `src/tasks/submissions/models.py` 新增 `TaskSubmission` 的 review 欄位：`status`（預設 `"pending"`）、`rejection_reason`、`resubmit_deadline`、`parent_submission_id`；積分仍立即入帳不變（TaskSubmission stores review state / TaskSubmission 加 status 欄位，積分仍立即入帳）
-- [ ] 1.2 在 `src/tasks/checkin/models.py` 新增 `AttendanceCorrection` Beanie document，包含 `class_id`、`student_id`、`date`、`status`、`partial_points`、`created_by`、`created_at`（AttendanceCorrection document）
-- [ ] 1.3 在 `src/gamification/points/models.py` 的 `PointTransaction.source_event` 補充 `"checkin_manual_late"`、`"checkin_manual_revoke"`、`"submission_rejected"`、`"submission_reapproved"` 文件註解
+- [x] 1.1 在 `src/tasks/submissions/models.py` 新增 `TaskSubmission` 的 review 欄位：`status`（預設 `"pending"`）、`rejection_reason`、`resubmit_deadline`、`parent_submission_id`；積分仍立即入帳不變（TaskSubmission stores review state / TaskSubmission 加 status 欄位，積分仍立即入帳）
+- [x] 1.2 在 `src/tasks/checkin/models.py` 新增 `AttendanceCorrection` Beanie document，包含 `class_id`、`student_id`、`date`、`status`、`partial_points`、`created_by`、`created_at`（AttendanceCorrection document）
+- [x] 1.3 在 `src/gamification/points/models.py` 的 `PointTransaction.source_event` 補充 `"checkin_manual_late"`、`"checkin_manual_revoke"`、`"submission_rejected"`、`"submission_reapproved"` 文件註解
 
 ## 2. 簽到重複提交防護調整
 
-- [ ] 2.1 在 `src/tasks/submissions/service.py` 修改查重邏輯：只有 `status != "rejected"` 的記錄才計入一日唯一限制（Student submits daily task / Duplicate submission rejected when active submission exists / Resubmission allowed after rejection）
+- [x] 2.1 在 `src/tasks/submissions/service.py` 修改查重邏輯：只有 `status != "rejected"` 的記錄才計入一日唯一限制（Student submits daily task / Duplicate submission rejected when active submission exists / Resubmission allowed after rejection）
 
 ## 3. 出席管理後端
 
-- [ ] 3.1 在 `src/tasks/checkin/router.py` 新增 `GET /pages/teacher/classes/{class_id}/attendance` 頁面路由，讀取指定日期的班級成員與 `CheckinRecord`、`AttendanceCorrection` 資料（Teacher views daily attendance list）
-- [ ] 3.2 在 `src/tasks/checkin/router.py` 新增 `POST /api/classes/{class_id}/attendance/correct` 端點，處理遲到補分（`status: "late"`）與撤銷（`status: "absent"`），建立或更新 `AttendanceCorrection`，並建立對應 `PointTransaction`（Teacher marks absent student as late / Teacher revokes check-in for student who was actually absent / Existing correction is overwritten）
-- [ ] 3.3 驗證遲到補分數量範圍（1 ≤ partial_points ≤ checkin_points），超出範圍回傳 HTTP 422（Partial points must be between 1 and checkin_points）
+- [x] 3.1 在 `src/tasks/checkin/router.py` 新增 `GET /pages/teacher/classes/{class_id}/attendance` 頁面路由，讀取指定日期的班級成員與 `CheckinRecord`、`AttendanceCorrection` 資料（Teacher views daily attendance list）
+- [x] 3.2 在 `src/tasks/checkin/router.py` 新增 `POST /api/classes/{class_id}/attendance/correct` 端點，處理遲到補分（`status: "late"`）與撤銷（`status: "absent"`），建立或更新 `AttendanceCorrection`，並建立對應 `PointTransaction`（Teacher marks absent student as late / Teacher revokes check-in for student who was actually absent / Existing correction is overwritten）
+- [x] 3.3 驗證遲到補分數量範圍（1 ≤ partial_points ≤ checkin_points），超出範圍回傳 HTTP 422（Partial points must be between 1 and checkin_points）
 
 ## 4. 作業審查後端（AttendanceCorrection 記錄例外，不修改 CheckinRecord）
 
