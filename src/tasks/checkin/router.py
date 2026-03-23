@@ -8,12 +8,15 @@ from pydantic import BaseModel
 from core.auth.deps import get_current_user
 from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
+from core.classes.models import Class
+from core.classes.service import can_manage_class
 from core.users.models import User
 from extensions.deps import get_reward_providers
 from extensions.protocols.reward import RewardEvent, RewardEventType
 from pages.deps import get_page_user
 from shared.webpage import webpage
 from tasks.checkin.service import (
+    MembershipError,
     do_checkin,
     is_checkin_open,
     set_daily_override,
@@ -21,6 +24,16 @@ from tasks.checkin.service import (
 )
 
 router = APIRouter(tags=["checkin"])
+
+
+async def _require_manage(class_id: str, user: User) -> Class:
+    """Load class and assert user can manage it; raises 403 if not authorised."""
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
+    if not await can_manage_class(user, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return cls
 
 
 class GlobalConfigRequest(BaseModel):
@@ -40,8 +53,9 @@ class OverrideRequest(BaseModel):
 async def configure_checkin(
     class_id: str,
     body: GlobalConfigRequest,
-    teacher: User = Depends(require_permission(MANAGE_CLASS)),
+    user: User = Depends(get_current_user),
 ):
+    await _require_manage(class_id, user)
     from datetime import time as dt_time
     ws = None
     we = None
@@ -59,8 +73,9 @@ async def configure_checkin(
 async def create_override(
     class_id: str,
     body: OverrideRequest,
-    teacher: User = Depends(require_permission(MANAGE_CLASS)),
+    user: User = Depends(get_current_user),
 ):
+    await _require_manage(class_id, user)
     from datetime import date, time as dt_time
     target_date = date.fromisoformat(body.date)
     ws = None
@@ -80,6 +95,8 @@ async def checkin(class_id: str, user: User = Depends(get_current_user)):
     now = datetime.now(timezone.utc)
     try:
         record = await do_checkin(user, class_id, now)
+    except MembershipError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
@@ -111,6 +128,8 @@ async def checkin_browser(
     now = datetime.now(timezone.utc)
     try:
         record = await do_checkin(user, class_id, now)
+    except MembershipError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
     except ValueError as e:
         error_msg = str(e)
         dashboard_base = str(request.url_for("dashboard_page"))
@@ -146,12 +165,9 @@ async def checkin_config_page(
     success: Optional[str] = None,
 ):
     """Teacher page to view and update checkin schedule and single-day overrides."""
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES
-    from fastapi import HTTPException as _HTTPException
     from tasks.checkin.models import CheckinConfig
 
-    if not (teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)):
-        raise _HTTPException(status_code=403, detail="Permission denied")
+    await _require_manage(class_id, teacher)
 
     config = await CheckinConfig.find_one(CheckinConfig.class_id == class_id)
     if config:

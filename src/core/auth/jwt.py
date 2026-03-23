@@ -1,12 +1,25 @@
 """JWT token creation and decoding."""
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
 
-_SECRET = os.getenv("SESSION_SECRET", "dev-secret-change-in-production")
+_DEFAULT_SECRET = "dev-secret-change-in-production"
+_SECRET = os.getenv("SESSION_SECRET", _DEFAULT_SECRET)
 _ALGORITHM = "HS256"
 _DEFAULT_EXPIRES = int(os.getenv("JWT_EXPIRES_SECONDS", str(60 * 60 * 24)))  # 24h
+
+_logger = logging.getLogger(__name__)
+
+
+def check_secret_safety() -> None:
+    """Log a warning if SESSION_SECRET is using the default development value."""
+    if _SECRET == _DEFAULT_SECRET:
+        _logger.warning(
+            "SESSION_SECRET is using the default development value. "
+            "Change this in production."
+        )
 
 
 def create_access_token(

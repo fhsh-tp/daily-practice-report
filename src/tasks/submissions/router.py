@@ -16,6 +16,7 @@ from pages.deps import get_page_user
 from shared.webpage import webpage
 from tasks.submissions.models import TaskSubmission
 from tasks.submissions.service import (
+    MembershipError,
     get_class_submissions_for_date,
     get_student_submissions,
     submit_task,
@@ -80,6 +81,8 @@ async def submit_task_endpoint(
             submission_date=target_date,
             field_values=body.field_values,
         )
+    except MembershipError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 

@@ -7,6 +7,10 @@ from tasks.templates.models import TaskTemplate
 from core.users.models import User
 
 
+class MembershipError(ValueError):
+    """Raised when the student is not a member of the target class."""
+
+
 def _validate_field_values(
     template: TaskTemplate,
     field_values: dict[str, Any],
@@ -47,8 +51,18 @@ async def submit_task(
     Submit a daily task for a student.
 
     Raises:
+        MembershipError: If the student is not a member of the class.
         ValueError: If already submitted or required fields are missing.
     """
+    # Verify class membership — prevents non-members from submitting
+    from core.classes.models import ClassMembership
+    membership = await ClassMembership.find_one(
+        ClassMembership.class_id == class_id,
+        ClassMembership.user_id == str(student.id),
+    )
+    if not membership:
+        raise MembershipError("Not a member of this class")
+
     # Check per-student submission limit from associated schedule rule
     from tasks.templates.models import TaskScheduleRule
     rule = await TaskScheduleRule.find_one(

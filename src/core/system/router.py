@@ -76,6 +76,12 @@ async def post_setup(
     if _is_configured(request):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already configured")
 
+    if len(admin_password) < 8:
+        error_url = request.url_for("setup_page").include_query_params(
+            error="Admin password must be at least 8 characters"
+        )
+        return (str(error_url), 302)
+
     try:
         # Persist system config
         config = SystemConfig(site_name=site_name, admin_email="")

@@ -33,9 +33,11 @@ async def teacher(db):
 @pytest.fixture
 async def student(db):
     from core.users.models import User
+    from core.classes.models import ClassMembership
     from core.auth.password import hash_password
     u = User(username="stu", hashed_password=hash_password("pw"), display_name="S")
     await u.insert()
+    await ClassMembership(class_id="cls1", user_id=str(u.id), role="student").insert()
     return u
 
 
