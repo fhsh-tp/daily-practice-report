@@ -719,6 +719,36 @@ updated: 2026-03-19
 -->
 
 ---
+### Requirement: Template modification requires class management permission
+
+The system SHALL verify that the requesting user can manage the class a template belongs to before allowing update, delete, archive, or unarchive operations. The system SHALL load the template, retrieve its `class_id`, load the corresponding Class document, and call `can_manage_class(user, cls)`. If the user cannot manage the class, the system SHALL return HTTP 403.
+
+#### Scenario: Teacher modifies template in own class
+
+- **WHEN** a teacher with `MANAGE_TASKS` permission and teacher membership in class C calls `PATCH /templates/{template_id}` for a template belonging to class C
+- **THEN** the system SHALL proceed with the update normally
+
+#### Scenario: Teacher modifies template in another class
+
+- **WHEN** a teacher with `MANAGE_TASKS` permission but no membership in class C calls `PATCH /templates/{template_id}` for a template belonging to class C
+- **THEN** the system SHALL return HTTP 403
+
+#### Scenario: Class manager modifies any template
+
+- **WHEN** a user with `MANAGE_ALL_CLASSES` permission calls `PATCH /templates/{template_id}` for any template
+- **THEN** the system SHALL proceed with the update normally
+
+#### Scenario: Teacher deletes template in another class
+
+- **WHEN** a teacher with `MANAGE_TASKS` permission but no membership in class C calls `DELETE /templates/{template_id}` for a template belonging to class C
+- **THEN** the system SHALL return HTTP 403
+
+<!-- @trace
+source: fix-cross-class-access-control
+updated: 2026-03-24
+-->
+
+---
 ### Requirement: Task assignment form includes Discord sync option
 
 The task assignment form SHALL include a checkbox "同步到 Discord" that is visible only when the class has a configured Webhook URL.
