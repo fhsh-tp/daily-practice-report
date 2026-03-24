@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from core.auth.deps import get_current_user
 from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_TASKS
+from core.classes.models import Class
+from core.classes.service import can_manage_class
 from core.users.models import User
 from gamification.badges.models import BadgeAward, BadgeDefinition
 from gamification.badges.service import award_badge, get_student_badges
@@ -34,6 +36,10 @@ async def create_badge(
     body: BadgeCreateRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    cls = await Class.get(class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
     badge = BadgeDefinition(
         class_id=class_id,
         name=body.name,
@@ -53,6 +59,10 @@ async def manual_award_badge(
     body: ManualAwardRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    cls = await Class.get(class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
     badge = await BadgeDefinition.get(badge_id)
     if badge is None or badge.class_id != class_id:
         raise HTTPException(status_code=404, detail="Badge not found")

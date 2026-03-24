@@ -6,8 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from core.auth.deps import get_current_user
-from core.auth.guards import require_permission
-from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class
 from core.classes.service import can_manage_class
 from core.users.models import User
@@ -277,7 +275,7 @@ async def attendance_manage_page(
 async def correct_attendance(
     class_id: str,
     body: AttendanceCorrectionRequest,
-    teacher: User = Depends(require_permission(MANAGE_CLASS)),
+    teacher: User = Depends(get_current_user),
 ):
     """Teacher corrects attendance: late (partial points) or absent (revoke points).
 
@@ -286,6 +284,7 @@ async def correct_attendance(
                 Existing correction is overwritten /
                 Partial points must be between 1 and checkin_points
     """
+    await _require_manage(class_id, teacher)
     from tasks.checkin.models import CheckinRecord, AttendanceCorrection
     from gamification.points.models import ClassPointConfig
     from gamification.points.service import award_points, deduct_points

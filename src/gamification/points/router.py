@@ -47,6 +47,11 @@ async def deduct_student_points(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Amount must be positive",
         )
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(body.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     tx = await deduct_points(
         student_id=body.student_id,
         class_id=body.class_id,
@@ -87,6 +92,11 @@ async def revoke_student_points(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Amount must be positive",
         )
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     tx = await revoke_points(
         student_id=student_id,
         class_id=class_id,
@@ -103,6 +113,11 @@ async def update_point_config(
     body: ConfigRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     from gamification.points.models import ClassPointConfig
     existing = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
     if existing:

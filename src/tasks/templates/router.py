@@ -63,12 +63,25 @@ class ScheduleRuleRequest(BaseModel):
     sync_discord: bool = False
 
 
+async def _require_class_manage(class_id: str, user: User) -> None:
+    """Verify user can manage the given class; raises 403/404."""
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+
+    cls = await Class.get(class_id)
+    if cls is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Class not found")
+    if not await can_manage_class(user, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+
 @router.post("/classes/{class_id}/templates", status_code=status.HTTP_201_CREATED)
 async def create_template_endpoint(
     class_id: str,
     body: CreateTemplateRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_class_manage(class_id, teacher)
     try:
         tmpl = await create_template(
             name=body.name,
@@ -88,6 +101,7 @@ async def create_schedule_rule(
     body: ScheduleRuleRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_class_manage(class_id, teacher)
     from tasks.templates.models import TaskScheduleRule
     rule = TaskScheduleRule(
         template_id=body.template_id,
@@ -129,12 +143,24 @@ async def assign_template(
     body: AssignTemplateRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_class_manage(class_id, teacher)
     assignment = await assign_template_to_date(body.template_id, class_id, body.date)
     return {"template_id": assignment.template_id, "date": str(assignment.date)}
 
 
 @router.get("/classes/{class_id}/today-template")
 async def today_template(class_id: str, user: User = Depends(get_current_user)):
+    from core.auth.permissions import MANAGE_ALL_CLASSES
+    from core.classes.models import ClassMembership
+
+    if not (user.permissions & MANAGE_ALL_CLASSES):
+        membership = await ClassMembership.find_one(
+            ClassMembership.class_id == class_id,
+            ClassMembership.user_id == str(user.id),
+        )
+        if membership is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
+
     tmpl = await get_template_for_date(class_id, date.today())
     if tmpl is None:
         return {"message": "No task available today"}
@@ -146,12 +172,27 @@ async def today_template(class_id: str, user: User = Depends(get_current_user)):
     }
 
 
+async def _require_template_class(template_id: str, user: User) -> None:
+    """Verify user can manage the class owning the template; raises 403/404."""
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    from tasks.templates.models import TaskTemplate as TT
+
+    tmpl = await TT.get(template_id)
+    if tmpl is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    cls = await Class.get(tmpl.class_id)
+    if cls is None or not await can_manage_class(user, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+
 @router.patch("/templates/{template_id}")
 async def update_template_endpoint(
     template_id: str,
     body: UpdateTemplateRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_template_class(template_id, teacher)
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if "fields" in updates:
         updates["fields"] = [f.model_dump() for f in body.fields]
@@ -167,6 +208,7 @@ async def delete_template_endpoint(
     template_id: str,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_template_class(template_id, teacher)
     try:
         await delete_template(template_id)
     except ValueError as e:
@@ -178,6 +220,7 @@ async def archive_template_endpoint(
     template_id: str,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_template_class(template_id, teacher)
     try:
         tmpl = await archive_template(template_id)
     except ValueError as e:
@@ -190,6 +233,7 @@ async def unarchive_template_endpoint(
     template_id: str,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    await _require_template_class(template_id, teacher)
     try:
         tmpl = await unarchive_template(template_id)
     except ValueError as e:

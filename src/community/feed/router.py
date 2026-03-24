@@ -4,8 +4,8 @@ from pydantic import BaseModel
 
 from community.feed.models import FeedPost, Reaction
 from core.auth.deps import get_current_user
-from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
-from core.classes.models import ClassMembership
+from core.classes.models import Class, ClassMembership
+from core.classes.service import can_manage_class
 from core.users.models import User
 from pages.deps import get_page_user
 from shared.webpage import webpage
@@ -136,7 +136,8 @@ async def delete_post(
         raise HTTPException(status_code=404, detail="Post not found")
 
     # Teacher or own post
-    is_teacher = bool(user.permissions & MANAGE_CLASS)
+    cls = await Class.get(post.class_id)
+    is_teacher = cls is not None and await can_manage_class(user, cls)
     is_own = post.student_id == str(user.id)
     if not (is_teacher or is_own):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")

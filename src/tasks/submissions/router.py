@@ -119,6 +119,13 @@ async def add_submission_comment(
     sub = await TaskSubmission.get(submission_id)
     if sub is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(sub.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
     sub.teacher_comment = body.comment
     sub.reviewed_at = datetime.now(timezone.utc)
     await sub.save()
@@ -224,6 +231,12 @@ async def approve_submission(
     if sub is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
 
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(sub.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
     was_rejected = sub.status == "rejected"
     sub.status = "approved"
     await sub.save()
@@ -275,6 +288,12 @@ async def reject_submission(
     sub = await TaskSubmission.get(submission_id)
     if sub is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    from core.classes.models import Class
+    from core.classes.service import can_manage_class
+    cls = await Class.get(sub.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
     sub.status = "rejected"
     sub.rejection_reason = body.rejection_reason.strip()

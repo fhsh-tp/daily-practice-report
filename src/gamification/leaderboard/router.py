@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from core.auth.deps import get_current_user
-from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
+from core.auth.permissions import MANAGE_ALL_CLASSES, MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
@@ -50,6 +50,14 @@ async def class_leaderboard(
     cls = await Class.get(class_id)
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
+
+    if not (user.permissions & MANAGE_ALL_CLASSES):
+        membership = await ClassMembership.find_one(
+            ClassMembership.class_id == class_id,
+            ClassMembership.user_id == str(user.id),
+        )
+        if membership is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
 
     if not (user.permissions & MANAGE_CLASS) and not cls.leaderboard_enabled:
         return {"visible": False, "message": "Leaderboard is not enabled for this class"}
