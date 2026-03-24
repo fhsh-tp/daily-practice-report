@@ -66,14 +66,30 @@ The system SHALL render an overview page at `GET /pages/admin/` that displays st
 ---
 ### Requirement: Admin navigation reflects caller's permissions
 
-The sidebar SHALL render admin management items within the unified "平台管理" section instead of separate "管理工具" and "管理員" sections. The section SHALL show only the items the current user is permitted to access: "使用者管理" (requires `MANAGE_USERS`), "班級管理" (requires `MANAGE_ALL_CLASSES`), and "系統管理" (requires `WRITE_SYSTEM`).
+The sidebar SHALL render a single "管理後台" link under the "平台管理" section that navigates to `/pages/admin/`. The link SHALL appear when the user has `MANAGE_USERS`, `MANAGE_ALL_CLASSES`, or `WRITE_SYSTEM` permission. The sidebar SHALL NOT render individual items for "使用者管理", "班級管理", or "系統管理" — sub-page navigation SHALL be handled by the Admin Panel's own tab navigation.
 
-#### Scenario: Full admin sees all platform management items
+#### Scenario: Admin user sees single admin entry in sidebar
+
+- **WHEN** a user with any admin permission (`MANAGE_USERS`, `MANAGE_ALL_CLASSES`, or `WRITE_SYSTEM`) views the sidebar
+- **THEN** the "平台管理" section SHALL contain a single "管理後台" link pointing to `/pages/admin/`
+
+#### Scenario: Sidebar does not show individual admin items
 
 - **WHEN** a user with `MANAGE_USERS`, `MANAGE_ALL_CLASSES`, and `WRITE_SYSTEM` views the sidebar
-- **THEN** the "平台管理" section SHALL contain "使用者管理", "班級管理", and "系統管理"
+- **THEN** the sidebar SHALL NOT display separate "使用者管理", "班級管理", or "系統管理" links
 
-#### Scenario: User-only admin sees restricted items
+#### Scenario: Non-admin user sees no platform management section
 
-- **WHEN** a user with `MANAGE_USERS` but without `WRITE_SYSTEM` or `MANAGE_ALL_CLASSES` views the sidebar
-- **THEN** the "平台管理" section SHALL contain only "使用者管理"
+- **WHEN** a user without any admin permission views the sidebar
+- **THEN** the sidebar SHALL NOT display the "平台管理" section
+
+<!-- @trace
+source: admin-sidebar-and-settings-polish
+updated: 2026-03-24
+code:
+  - src/shared/page_context 2.py
+tests:
+  - tests/test_class_hub_stats 2.py
+  - tests/test_sidebar_context 2.py
+  - tests/test_page_context 2.py
+-->
