@@ -13,6 +13,7 @@ from extensions.deps import get_reward_providers, get_submission_validators
 from extensions.protocols.reward import RewardEvent, RewardEventType
 from extensions.protocols.validator import ValidationResult
 from pages.deps import get_page_user
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 from tasks.submissions.models import TaskSubmission
 from tasks.submissions.service import (
@@ -196,18 +197,8 @@ async def submission_review_page(
             }
         grouped[sid]["submissions"].append(sub)
 
-    return {
-        "current_user": teacher,
-        "class_id": class_id,
-        "class_name": cls.name,
-        "students": list(grouped.values()),
-        "can_manage_tasks": True,
-        "can_manage_class": True,
-        "can_manage_all_classes": False,
-        "can_manage_users": False,
-        "is_sys_admin": False,
-        "classes": [],
-    }
+    page_ctx = await build_page_context(teacher)
+    return {**page_ctx, "class_id": class_id, "class_name": cls.name, "students": list(grouped.values())}
 
 
 class RejectRequest(BaseModel):

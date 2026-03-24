@@ -26,9 +26,35 @@
   </div>
 </div>
 
-{# ── Class Summary Card ── #}
-<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
-  <div class="flex flex-wrap gap-6">
+{# ── Invite Code Bar ── #}
+<div class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+  <span class="text-sm text-gray-500 dark:text-gray-400">邀請碼</span>
+  <code id="invite-code" class="text-lg font-mono font-bold text-brand-700 dark:text-brand-400">{{ invite_code }}</code>
+  <span class="text-xs text-gray-400 dark:text-gray-500">學生輸入即可加入</span>
+  <div class="ml-auto flex gap-2">
+    <button onclick="copyInviteCode()"
+            id="copy-invite-btn"
+            class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-150 cursor-pointer">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+      </svg>
+      複製
+    </button>
+    <button onclick="regenInviteCode()"
+            id="regen-invite-btn"
+            class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-150 cursor-pointer">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+      </svg>
+      重新產生
+    </button>
+  </div>
+</div>
+
+{# ── Statistics Cards ── #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {# 成員數 #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center shrink-0">
         <svg class="w-5 h-5 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
@@ -40,18 +66,55 @@
         <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ member_count }}</p>
       </div>
     </div>
+  </div>
 
+  {# 今日簽到率 #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-lg {% if checkin_open %}bg-green-100 dark:bg-green-900/40{% else %}bg-gray-100 dark:bg-gray-800{% endif %} flex items-center justify-center shrink-0">
-        <svg class="w-5 h-5 {% if checkin_open %}text-green-600 dark:text-green-400{% else %}text-gray-400 dark:text-gray-500{% endif %}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+      <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
       </div>
       <div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">簽到狀態</p>
-        <p class="text-sm font-semibold {% if checkin_open %}text-green-600 dark:text-green-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
-          {{ '開放中' if checkin_open else '已關閉' }}
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">今日簽到率</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100">
+          {% if member_count > 0 %}
+            {{ (today_checkin_count / member_count * 100) | round(0) | int }}%
+          {% else %}
+            N/A
+          {% endif %}
         </p>
+      </div>
+    </div>
+  </div>
+
+  {# 待審查任務 #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">待審查任務</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ pending_submission_count }}</p>
+      </div>
+    </div>
+  </div>
+
+  {# 本週提交率 #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">本週提交率</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ weekly_submission_rate }}%</p>
       </div>
     </div>
   </div>
@@ -89,6 +152,38 @@
       <div class="min-w-0">
         <p class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-150">任務模板</p>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">建立與指派每日任務</p>
+      </div>
+    </div>
+  </a>
+
+  {# 任務審查 #}
+  <a href="{{ url_for('submission_review_page', class_id=class_id) }}"
+     class="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 cursor-pointer">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center shrink-0 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50 transition-colors duration-200">
+        <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <p class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-700 dark:group-hover:text-orange-300 transition-colors duration-150">任務審查</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">審查學生提交的任務</p>
+      </div>
+    </div>
+  </a>
+
+  {# 出席紀錄 #}
+  <a href="{{ url_for('attendance_manage_page', class_id=class_id) }}"
+     class="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-sm transition-all duration-200 cursor-pointer">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center shrink-0 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50 transition-colors duration-200">
+        <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <p class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors duration-150">出席紀錄</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">查看與管理出席紀錄</p>
       </div>
     </div>
   </a>
@@ -177,6 +272,64 @@
 {% block scripts %}
 <script>
 const CLASS_ID_HUB = '{{ class_id }}';
+
+async function copyInviteCode() {
+  const code = document.getElementById('invite-code').textContent.trim();
+  const btn = document.getElementById('copy-invite-btn');
+  try {
+    await navigator.clipboard.writeText(code);
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> 已複製';
+    btn.classList.add('text-green-600', 'dark:text-green-400');
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('text-green-600', 'dark:text-green-400');
+    }, 2000);
+  } catch {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+}
+
+async function regenInviteCode() {
+  const btn = document.getElementById('regen-invite-btn');
+  if (!confirm('重新產生邀請碼後，舊的邀請碼將立即失效。確定要繼續嗎？')) return;
+
+  btn.disabled = true;
+  const originalHTML = btn.innerHTML;
+  btn.textContent = '產生中…';
+
+  try {
+    const resp = await fetch(`/classes/${CLASS_ID_HUB}/invite-code/regenerate`, {
+      method: 'POST',
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      document.getElementById('invite-code').textContent = data.invite_code;
+      btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> 已更新';
+      btn.classList.add('text-green-600', 'dark:text-green-400');
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('text-green-600', 'dark:text-green-400');
+      }, 2000);
+    } else {
+      alert('重新產生失敗，請稍後再試');
+      btn.innerHTML = originalHTML;
+    }
+  } catch {
+    alert('網路錯誤，請稍後再試');
+    btn.innerHTML = originalHTML;
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 async function saveDiscordWebhook() {
   const url = document.getElementById('discord-webhook-input').value;

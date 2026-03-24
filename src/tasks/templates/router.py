@@ -199,6 +199,7 @@ async def unarchive_template_endpoint(
 
 from fastapi import Request
 from pages.deps import get_page_user
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 
 
@@ -233,8 +234,9 @@ async def class_members_page(
             "display_name": u.display_name if u else m.user_id,
             "role": m.role,
         })
+    page_ctx = await build_page_context(teacher)
     return {
-        "current_user": teacher,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "invite_code": cls.invite_code,
@@ -255,7 +257,8 @@ async def templates_list_page(
     from core.classes.models import Class
     cls = await Class.get(class_id)
     class_name = cls.name if cls else class_id
-    return {"current_user": teacher, "class_id": class_id, "class_name": class_name, "templates": templates}
+    page_ctx = await build_page_context(teacher)
+    return {**page_ctx, "class_id": class_id, "class_name": class_name, "templates": templates}
 
 
 @router.get("/pages/teacher/classes/{class_id}/templates/new", name="template_form_page")
@@ -266,7 +269,8 @@ async def template_form_page(
     error: str | None = None,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
-    return {"current_user": teacher, "class_id": class_id, "template": None, "error": error}
+    page_ctx = await build_page_context(teacher)
+    return {**page_ctx, "class_id": class_id, "template": None, "error": error}
 
 
 @router.get("/pages/teacher/templates/{template_id}/edit", name="template_edit_page")
@@ -280,7 +284,8 @@ async def template_edit_page(
     tmpl = await TT.get(template_id)
     if tmpl is None:
         raise HTTPException(status_code=404, detail="Template not found")
-    return {"current_user": teacher, "class_id": tmpl.class_id, "template": tmpl, "error": None}
+    page_ctx = await build_page_context(teacher)
+    return {**page_ctx, "class_id": tmpl.class_id, "template": tmpl, "error": None}
 
 
 @router.get("/pages/teacher/templates/{template_id}/assign", name="template_assign_page")
@@ -298,8 +303,9 @@ async def template_assign_page(
     cls = await Class.get(tmpl.class_id)
     class_name = cls.name if cls else tmpl.class_id
     has_discord_webhook = bool(cls and cls.discord_webhook_url)
+    page_ctx = await build_page_context(teacher)
     return {
-        "current_user": teacher,
+        **page_ctx,
         "class_id": tmpl.class_id,
         "class_name": class_name,
         "template": tmpl,

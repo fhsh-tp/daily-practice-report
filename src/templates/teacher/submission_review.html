@@ -1,208 +1,233 @@
 {% extends "shared/base.html" %}
-{% block title %}提交審閱 — {{ class_name }}{% endblock %}
+{% block title %}任務審查 — {{ class_name }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+  <a href="{{ url_for('dashboard_page') }}" class="hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 cursor-pointer">儀表板</a>
+  <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+  <a href="{{ url_for('teacher_class_hub_page', class_id=class_id) }}" class="hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150 cursor-pointer">{{ class_name }}</a>
+  <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+  <span class="text-gray-700 dark:text-gray-200 font-medium">任務審查</span>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="mb-6">
-  <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-    <a href="{{ url_for('dashboard_page') }}" class="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer">儀表板</a>
-    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-    <span class="text-gray-700 dark:text-gray-300">提交審閱</span>
-  </div>
-  <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">提交審閱</h1>
+  <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">任務審查</h1>
   <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">班級：<strong class="text-gray-700 dark:text-gray-300">{{ class_name }}</strong></p>
 </div>
 
 {# ── Toast notifications ──────────────────────────────────────────────────── #}
 <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
 
+{# ── Count pending submissions for badge ─────────────────────────────────── #}
+{% set ns = namespace(pending_count=0) %}
+{% for student in students %}
+  {% for sub in student.submissions %}
+    {% if sub.status == 'pending' %}
+      {% set ns.pending_count = ns.pending_count + 1 %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{# ── Filter tabs ─────────────────────────────────────────────────────────── #}
+<div class="flex gap-2 mb-4 flex-wrap">
+  <button data-filter="pending"
+          class="filter-tab active px-4 py-2 rounded-lg text-sm font-medium bg-brand-600 text-white transition-colors duration-150 cursor-pointer">
+    待審閱 <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700" id="pending-count-badge">{{ ns.pending_count }}</span>
+  </button>
+  <button data-filter="approved"
+          class="filter-tab px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 cursor-pointer">
+    已確認
+  </button>
+  <button data-filter="rejected"
+          class="filter-tab px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 cursor-pointer">
+    已退回
+  </button>
+  <button data-filter="all"
+          class="filter-tab px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 cursor-pointer">
+    全部
+  </button>
+</div>
+
+{# ── Flat card list ──────────────────────────────────────────────────────── #}
 {% if students %}
-<div class="space-y-4">
+<div id="submissions-list" class="space-y-3">
   {% for student in students %}
-  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    {% for sub in student.submissions %}
+    <div class="submission-card bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-5 py-4"
+         id="sub-card-{{ sub.id }}"
+         data-status="{{ sub.status }}">
 
-    {# Student header — click to expand/collapse #}
-    <button type="button"
-            onclick="toggleStudent('student-{{ loop.index }}')"
-            class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center shrink-0">
-          <span class="text-sm font-semibold text-brand-700 dark:text-brand-400">{{ student.display_name[:1] }}</span>
-        </div>
-        <div>
-          <p class="font-heading font-semibold text-gray-900 dark:text-gray-100">{{ student.display_name }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">{{ student.submissions | length }} 筆提交</p>
-        </div>
-      </div>
-      <svg id="chevron-student-{{ loop.index }}"
-           class="w-5 h-5 text-gray-400 transition-transform duration-200 rotate-0"
-           fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-      </svg>
-    </button>
-
-    {# Submission list — hidden by default #}
-    <div id="student-{{ loop.index }}" class="hidden border-t border-gray-100 dark:border-gray-800">
-      {% if student.submissions %}
-      <div class="divide-y divide-gray-100 dark:divide-gray-800">
-        {% for sub in student.submissions %}
-        <div class="px-5 py-4" id="sub-card-{{ sub.id }}">
-
-          {# Header row: task name + date + status badge #}
-          <div class="flex items-start justify-between gap-4 mb-3">
-            <div class="min-w-0">
-              <p class="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                {{ sub.template_snapshot.get('name', '未知任務') }}
-              </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                {{ sub.submitted_at.strftime('%Y-%m-%d %H:%M') if sub.submitted_at else sub.date }}
-              </p>
-            </div>
-
-            {# Status badge — updated in-place after approve/reject #}
-            <span id="badge-{{ sub.id }}"
-                  class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
-                         {% if sub.status == 'approved' %}
-                           bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400
-                         {% elif sub.status == 'rejected' %}
-                           bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400
-                         {% else %}
-                           bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400
-                         {% endif %}">
-              {% if sub.status == 'approved' %}
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-              已確認
-              {% elif sub.status == 'rejected' %}
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-              已退回
-              {% else %}
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-              待審閱
+      {# ── Card header: avatar + name + resubmission badge + status ── #}
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center shrink-0">
+            <span class="text-sm font-semibold text-brand-700 dark:text-brand-400">{{ student.display_name[:1] }}</span>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-heading font-semibold text-gray-900 dark:text-gray-100 truncate">{{ student.display_name }}</p>
+              {% if sub.parent_submission_id %}
+              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400">補繳</span>
               {% endif %}
-            </span>
-          </div>
-
-          {# Field values #}
-          <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-3 space-y-1.5">
-            {% for key, val in sub.field_values.items() %}
-            <div class="flex gap-2 text-sm">
-              <span class="text-gray-500 dark:text-gray-400 shrink-0 font-medium min-w-[80px]">{{ key }}</span>
-              <span class="text-gray-800 dark:text-gray-200 break-all">{{ val }}</span>
             </div>
-            {% endfor %}
+            <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <span class="truncate">{{ sub.template_snapshot.get('name', '未知任務') }}</span>
+              <span class="shrink-0">&middot;</span>
+              <span class="shrink-0">{{ sub.submitted_at.strftime('%Y-%m-%d %H:%M') if sub.submitted_at else sub.date }}</span>
+            </div>
           </div>
+        </div>
 
-          {# Rejection reason display (if rejected) #}
-          {% if sub.status == 'rejected' and sub.rejection_reason %}
-          <div class="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 rounded-lg px-3 py-2.5 mb-3">
-            <p class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">退回原因</p>
-            <p class="text-sm text-gray-800 dark:text-gray-200">{{ sub.rejection_reason }}</p>
-            {% if sub.resubmit_deadline %}
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              補繳期限：{{ sub.resubmit_deadline.strftime('%Y-%m-%d %H:%M') if sub.resubmit_deadline else '無' }}
-            </p>
-            {% endif %}
-          </div>
+        {# Status badge — updated in-place after approve/reject #}
+        <span id="badge-{{ sub.id }}"
+              class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+                     {% if sub.status == 'approved' %}
+                       bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400
+                     {% elif sub.status == 'rejected' %}
+                       bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400
+                     {% else %}
+                       bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400
+                     {% endif %}">
+          {% if sub.status == 'approved' %}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+          已確認
+          {% elif sub.status == 'rejected' %}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          已退回
+          {% else %}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          待審閱
           {% endif %}
+        </span>
+      </div>
 
-          {# Teacher comment display #}
-          {% if sub.teacher_comment %}
-          <div class="bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/50 rounded-lg px-3 py-2.5 mb-3">
-            <p class="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1">教師評語</p>
-            <p class="text-sm text-gray-800 dark:text-gray-200">{{ sub.teacher_comment }}</p>
-            {% if sub.reviewed_at %}
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ sub.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</p>
-            {% endif %}
-          </div>
-          {% endif %}
-
-          {# Action row: approve + reject + comment #}
-          <div class="flex flex-wrap gap-2 mb-2">
-            {# Approve button #}
-            <button type="button"
-                    onclick="approveSubmission('{{ sub.id }}')"
-                    id="approve-btn-{{ sub.id }}"
-                    class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-              確認
-            </button>
-
-            {# Reject toggle button #}
-            <button type="button"
-                    onclick="toggleRejectPanel('{{ sub.id }}')"
-                    id="reject-toggle-{{ sub.id }}"
-                    class="inline-flex items-center gap-1.5 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-              退回
-            </button>
-
-            {# Comment button #}
-            <button type="button"
-                    onclick="toggleCommentPanel('{{ sub.id }}')"
-                    class="inline-flex items-center gap-1.5 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
-              評語
-            </button>
-          </div>
-
-          {# Reject inline panel #}
-          <div id="reject-panel-{{ sub.id }}" class="hidden mt-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 space-y-3">
-            <p class="text-sm font-semibold text-red-700 dark:text-red-400">退回作業</p>
-            <div>
-              <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                退回原因 <span class="text-red-500">*</span>
-              </label>
-              <textarea id="reject-reason-{{ sub.id }}"
-                        rows="2"
-                        placeholder="請說明退回原因（必填）"
-                        class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-shadow duration-150 resize-none"></textarea>
-              <p id="reject-reason-error-{{ sub.id }}" class="hidden mt-1 text-xs text-red-500">退回原因為必填</p>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">補繳期限（選填）</label>
-              <input type="datetime-local"
-                     id="reject-deadline-{{ sub.id }}"
-                     class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-shadow duration-150">
-            </div>
-            <div class="flex gap-2 pt-1">
-              <button type="button"
-                      onclick="toggleRejectPanel('{{ sub.id }}')"
-                      class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer">
-                取消
-              </button>
-              <button type="button"
-                      onclick="confirmReject('{{ sub.id }}')"
-                      id="reject-confirm-{{ sub.id }}"
-                      class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-150 cursor-pointer">
-                確認退回
-              </button>
-            </div>
-          </div>
-
-          {# Comment inline panel #}
-          <div id="comment-panel-{{ sub.id }}" class="hidden mt-3">
-            <form class="flex gap-2" onsubmit="submitComment(event, '{{ sub.id }}')">
-              <input type="text"
-                     name="comment"
-                     placeholder="{{ '更新評語…' if sub.teacher_comment else '輸入評語…' }}"
-                     value="{{ sub.teacher_comment or '' }}"
-                     class="flex-1 min-w-0 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
-              <button type="submit"
-                      class="shrink-0 inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
-                儲存
-              </button>
-            </form>
-          </div>
-
+      {# ── Field values ── #}
+      <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-3 space-y-1.5">
+        {% for key, val in sub.field_values.items() %}
+        <div class="flex gap-2 text-sm">
+          <span class="text-gray-500 dark:text-gray-400 shrink-0 font-medium min-w-[80px]">{{ key }}</span>
+          <span class="text-gray-800 dark:text-gray-200 break-all">{{ val }}</span>
         </div>
         {% endfor %}
       </div>
-      {% else %}
-      <div class="px-5 py-6 text-center text-sm text-gray-400 dark:text-gray-500">此學生尚無提交記錄</div>
+
+      {# ── Rejection reason display (if rejected) ── #}
+      {% if sub.status == 'rejected' and sub.rejection_reason %}
+      <div class="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 rounded-lg px-3 py-2.5 mb-3">
+        <p class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">退回原因</p>
+        <p class="text-sm text-gray-800 dark:text-gray-200">{{ sub.rejection_reason }}</p>
+        {% if sub.resubmit_deadline %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          補繳期限：{{ sub.resubmit_deadline.strftime('%Y-%m-%d %H:%M') if sub.resubmit_deadline else '無' }}
+        </p>
+        {% endif %}
+      </div>
       {% endif %}
+
+      {# ── Teacher comment display ── #}
+      {% if sub.teacher_comment %}
+      <div class="bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/50 rounded-lg px-3 py-2.5 mb-3">
+        <p class="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1">教師評語</p>
+        <p class="text-sm text-gray-800 dark:text-gray-200">{{ sub.teacher_comment }}</p>
+        {% if sub.reviewed_at %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ sub.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# ── Action row: approve + reject + comment ── #}
+      <div class="flex flex-wrap gap-2 mb-2">
+        {# Approve button #}
+        <button type="button"
+                onclick="approveSubmission('{{ sub.id }}')"
+                id="approve-btn-{{ sub.id }}"
+                class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+          確認
+        </button>
+
+        {# Reject toggle button #}
+        <button type="button"
+                onclick="toggleRejectPanel('{{ sub.id }}')"
+                id="reject-toggle-{{ sub.id }}"
+                class="inline-flex items-center gap-1.5 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          退回
+        </button>
+
+        {# Comment button #}
+        <button type="button"
+                onclick="toggleCommentPanel('{{ sub.id }}')"
+                class="inline-flex items-center gap-1.5 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+          評語
+        </button>
+      </div>
+
+      {# ── Reject inline panel ── #}
+      <div id="reject-panel-{{ sub.id }}" class="hidden mt-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 space-y-3">
+        <p class="text-sm font-semibold text-red-700 dark:text-red-400">退回作業</p>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+            退回原因 <span class="text-red-500">*</span>
+          </label>
+          <textarea id="reject-reason-{{ sub.id }}"
+                    rows="2"
+                    placeholder="請說明退回原因（必填）"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-shadow duration-150 resize-none"></textarea>
+          <p id="reject-reason-error-{{ sub.id }}" class="hidden mt-1 text-xs text-red-500">退回原因為必填</p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">補繳期限（選填）</label>
+          <input type="datetime-local"
+                 id="reject-deadline-{{ sub.id }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-shadow duration-150">
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button type="button"
+                  onclick="toggleRejectPanel('{{ sub.id }}')"
+                  class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 cursor-pointer">
+            取消
+          </button>
+          <button type="button"
+                  onclick="confirmReject('{{ sub.id }}')"
+                  id="reject-confirm-{{ sub.id }}"
+                  class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-150 cursor-pointer">
+            確認退回
+          </button>
+        </div>
+      </div>
+
+      {# ── Comment inline panel ── #}
+      <div id="comment-panel-{{ sub.id }}" class="hidden mt-3">
+        <form class="flex gap-2" onsubmit="submitComment(event, '{{ sub.id }}')">
+          <input type="text"
+                 name="comment"
+                 placeholder="{{ '更新評語…' if sub.teacher_comment else '輸入評語…' }}"
+                 value="{{ sub.teacher_comment or '' }}"
+                 class="flex-1 min-w-0 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow duration-150">
+          <button type="submit"
+                  class="shrink-0 inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
+            儲存
+          </button>
+        </form>
+      </div>
+
     </div>
-  </div>
+    {% endfor %}
   {% endfor %}
 </div>
+
+{# ── Empty state for filtered results ── #}
+<div id="no-results" class="hidden bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+  <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+  </svg>
+  <p class="text-gray-500 dark:text-gray-400">沒有符合篩選條件的提交記錄</p>
+</div>
+
 {% else %}
 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
   <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -215,13 +240,60 @@
 
 {% block head_extra %}
 <script>
-  /* ── Expand / collapse student card ───────────────────────────────── */
-  function toggleStudent(id) {
-    const el = document.getElementById(id);
-    const chevron = document.getElementById('chevron-' + id);
-    el.classList.toggle('hidden');
-    chevron.classList.toggle('rotate-180');
-  }
+  /* ── Filter tabs ────────────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabs = document.querySelectorAll('.filter-tab');
+    const cards = document.querySelectorAll('.submission-card');
+    const noResults = document.getElementById('no-results');
+    const listContainer = document.getElementById('submissions-list');
+
+    const ACTIVE_CLS = ['bg-brand-600', 'text-white'];
+    const INACTIVE_CLS = ['bg-white', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-400',
+                          'border', 'border-gray-200', 'dark:border-gray-700',
+                          'hover:bg-gray-50', 'dark:hover:bg-gray-700'];
+
+    function setActiveTab(btn) {
+      tabs.forEach(function (t) {
+        ACTIVE_CLS.forEach(function (c) { t.classList.remove(c); });
+        INACTIVE_CLS.forEach(function (c) { t.classList.add(c); });
+      });
+      INACTIVE_CLS.forEach(function (c) { btn.classList.remove(c); });
+      ACTIVE_CLS.forEach(function (c) { btn.classList.add(c); });
+    }
+
+    function filterCards(status) {
+      var visibleCount = 0;
+      cards.forEach(function (card) {
+        var cardStatus = card.getAttribute('data-status');
+        if (status === 'all' || cardStatus === status) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      if (noResults) {
+        if (visibleCount === 0) {
+          noResults.classList.remove('hidden');
+          if (listContainer) listContainer.classList.add('hidden');
+        } else {
+          noResults.classList.add('hidden');
+          if (listContainer) listContainer.classList.remove('hidden');
+        }
+      }
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var filter = tab.getAttribute('data-filter');
+        setActiveTab(tab);
+        filterCards(filter);
+      });
+    });
+
+    // Apply default filter on load
+    filterCards('pending');
+  });
 
   /* ── Toggle reject inline panel ──────────────────────────────────── */
   function toggleRejectPanel(subId) {
@@ -266,6 +338,12 @@
     const cfg = STATUS_CONFIG[newStatus] || STATUS_CONFIG.pending;
     badge.className = `shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.cls}`;
     badge.innerHTML = cfg.icon + cfg.label;
+
+    // Update card data-status for filtering
+    const card = document.getElementById('sub-card-' + subId);
+    if (card) {
+      card.setAttribute('data-status', newStatus);
+    }
   }
 
   /* ── Approve ──────────────────────────────────────────────────────── */
@@ -282,6 +360,7 @@
         // Hide reject panel if open
         document.getElementById('reject-panel-' + subId)?.classList.add('hidden');
         showToast('已確認該作業', 'success');
+        updatePendingCount();
       } else {
         const data = await resp.json().catch(() => ({}));
         showToast(data.detail || '確認失敗，請再試一次', 'error');
@@ -321,6 +400,7 @@
         updateBadge(subId, 'rejected');
         document.getElementById('reject-panel-' + subId).classList.add('hidden');
         showToast('已退回該作業並撤銷積分', 'success');
+        updatePendingCount();
       } else {
         const data = await resp.json().catch(() => ({}));
         showToast(data.detail || '退回失敗，請再試一次', 'error');
@@ -357,6 +437,14 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  /* ── Update pending count badge ────────────────────────────────────── */
+  function updatePendingCount() {
+    const badge = document.getElementById('pending-count-badge');
+    if (!badge) return;
+    const count = document.querySelectorAll('.submission-card[data-status="pending"]').length;
+    badge.textContent = count;
   }
 
   /* ── Toast ────────────────────────────────────────────────────────── */

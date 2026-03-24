@@ -63,6 +63,8 @@ async def checkin_config_app():
 
     from core.auth.router import router as auth_router
     from gamification.badges.router import router as badges_router
+    from gamification.leaderboard.router import router as leaderboard_router
+    from gamification.points.router import router as points_router
     from pages.router import router as pages_router
     from tasks.checkin.router import router as checkin_router
     from tasks.submissions.router import router as submissions_router
@@ -72,6 +74,8 @@ async def checkin_config_app():
     app.include_router(auth_router)
     app.include_router(pages_router)
     app.include_router(badges_router)
+    app.include_router(leaderboard_router)
+    app.include_router(points_router)
     app.include_router(checkin_router)
     app.include_router(submissions_router)
     app.include_router(templates_router)

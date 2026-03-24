@@ -14,6 +14,7 @@ from core.users.models import User
 from extensions.deps import get_reward_providers
 from extensions.protocols.reward import RewardEvent, RewardEventType
 from pages.deps import get_page_user
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 from tasks.checkin.service import (
     MembershipError,
@@ -183,8 +184,9 @@ async def checkin_config_page(
             "window_end": None,
         }
 
+    page_ctx = await build_page_context(teacher)
     return {
-        "current_user": teacher,
+        **page_ctx,
         "class_id": class_id,
         "config": config_data,
         "success": success,
@@ -207,7 +209,7 @@ async def attendance_manage_page(
     teacher: User = Depends(get_page_user),
 ):
     """Teacher views daily attendance list for a class (Teacher views daily attendance list)."""
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
+    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES
     if not (teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)):
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -260,29 +262,14 @@ async def attendance_manage_page(
             "correction": correction,
         })
 
-    # Sidebar classes
-    all_memberships = await ClassMembership.find(
-        ClassMembership.user_id == str(teacher.id)
-    ).to_list()
-    sidebar_classes = []
-    for sm in all_memberships:
-        c = await Class.get(sm.class_id)
-        if c and not c.is_archived:
-            sidebar_classes.append({"class_id": sm.class_id, "class_name": c.name})
-
+    page_ctx = await build_page_context(teacher)
     return {
-        "current_user": teacher,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "selected_date": selected_date.isoformat(),
         "students": students,
         "checkin_points": checkin_points,
-        "classes": sidebar_classes,
-        "can_manage_class": bool(teacher.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES)),
-        "can_manage_all_classes": bool(teacher.permissions & MANAGE_ALL_CLASSES),
-        "can_manage_tasks": bool(teacher.permissions & MANAGE_TASKS),
-        "can_manage_users": bool(teacher.permissions & MANAGE_USERS),
-        "is_sys_admin": bool(teacher.permissions & WRITE_SYSTEM),
     }
 
 
