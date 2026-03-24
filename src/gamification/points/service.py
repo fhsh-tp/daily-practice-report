@@ -39,6 +39,27 @@ async def award_points(
     return tx
 
 
+async def deduct_points(
+    student_id: str,
+    class_id: str,
+    amount: int,
+    reason: str,
+    deducted_by: str,
+) -> PointTransaction:
+    """Deduct points from a student via teacher action (not capped)."""
+    tx = PointTransaction(
+        student_id=student_id,
+        class_id=class_id,
+        amount=-amount,
+        reason=reason,
+        source_event="teacher_deduct",
+        source_id="",
+        created_by=deducted_by,
+    )
+    await tx.insert()
+    return tx
+
+
 async def revoke_points(
     student_id: str,
     class_id: str,

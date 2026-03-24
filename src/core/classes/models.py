@@ -17,6 +17,7 @@ class Class(Document):
     invite_code: str
     leaderboard_enabled: bool = True
     is_archived: bool = False
+    discord_webhook_url: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:

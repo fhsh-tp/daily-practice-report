@@ -12,6 +12,7 @@ class FeedPost(Document):
     student_id: str
     class_id: str
     content_preview: str = ""  # short excerpt from submission
+    event_type: str = "submission"  # "submission" | "submission_approved" | "submission_rejected"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:

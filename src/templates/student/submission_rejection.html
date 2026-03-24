@@ -1,0 +1,77 @@
+{% extends "shared/base.html" %}
+{% block title %}退回詳情{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+    <a href="{{ url_for('learning_history_page') }}" class="hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer">學習歷程</a>
+    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+    <span class="text-gray-700 dark:text-gray-300">退回詳情</span>
+  </div>
+  <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100">作業退回通知</h1>
+  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+    任務：<strong class="text-gray-700 dark:text-gray-300">{{ submission.template_snapshot.get('name', '未知任務') }}</strong>
+    &nbsp;·&nbsp;{{ submission.date }}
+  </p>
+</div>
+
+{# ── Rejection info ─────────────────────────────────────────────────────── #}
+<div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-xl p-5 mb-4">
+  <div class="flex items-start gap-3">
+    <div class="shrink-0 w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mt-0.5">
+      <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <p class="font-semibold text-red-700 dark:text-red-400 mb-1">老師退回了此作業</p>
+      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">{{ submission.rejection_reason or '（未提供原因）' }}</p>
+    </div>
+  </div>
+
+  {% if submission.resubmit_deadline %}
+  <div class="mt-4 pt-4 border-t border-red-200 dark:border-red-800/50 flex items-center gap-2 text-sm">
+    <svg class="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+    <span class="text-red-700 dark:text-red-400 font-semibold">補繳期限：</span>
+    <span class="text-gray-700 dark:text-gray-300">
+      {{ submission.resubmit_deadline.strftime('%Y-%m-%d %H:%M') if submission.resubmit_deadline else '無' }}
+    </span>
+  </div>
+  {% else %}
+  <div class="mt-4 pt-4 border-t border-red-200 dark:border-red-800/50 text-sm text-gray-500 dark:text-gray-400">
+    老師未設定補繳期限，此份作業不開放補繳。
+  </div>
+  {% endif %}
+</div>
+
+{# ── Original submission content ─────────────────────────────────────────── #}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+    <p class="font-heading font-semibold text-gray-900 dark:text-gray-100 text-sm">原始提交內容</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+      提交於 {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') if submission.submitted_at else submission.date }}
+    </p>
+  </div>
+  <div class="px-5 py-4 space-y-2">
+    {% for key, val in submission.field_values.items() %}
+    <div class="flex gap-3 text-sm">
+      <span class="text-gray-500 dark:text-gray-400 shrink-0 font-medium min-w-[80px]">{{ key }}</span>
+      <span class="text-gray-800 dark:text-gray-200 break-all">{{ val }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Resubmit CTA (if deadline exists and not passed) ──────────────────── #}
+{% if submission.resubmit_deadline %}
+<div class="mt-4 flex justify-end">
+  <a href="{{ url_for('submit_task_page', class_id=submission.class_id) }}"
+     class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors duration-150 cursor-pointer">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+    前往補繳
+  </a>
+</div>
+{% endif %}
+{% endblock %}

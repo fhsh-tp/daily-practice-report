@@ -13,13 +13,19 @@ from core.auth.permissions import STUDENT, TEACHER
 def _make_app():
     """Build a minimal FastAPI app with all page-related routers."""
     from core.auth.router import router as auth_router
+    from gamification.badges.router import router as badges_router
+    from gamification.leaderboard.router import router as leaderboard_router
+    from gamification.points.router import router as points_router
     from pages.router import router as pages_router
+    from tasks.checkin.router import router as checkin_router
     from tasks.submissions.router import router as submissions_router
+    from tasks.templates.router import router as templates_router
 
     app = FastAPI()
-    app.include_router(auth_router)
-    app.include_router(pages_router)
-    app.include_router(submissions_router)
+    for r in [auth_router, pages_router, submissions_router,
+              badges_router, leaderboard_router, points_router,
+              checkin_router, templates_router]:
+        app.include_router(r)
     return app
 
 
@@ -40,10 +46,12 @@ async def db_app():
     """App with real MongoDB mock and pre-loaded users."""
     from core.classes.models import Class, ClassMembership
     from core.users.models import User
+    from gamification.badges.models import BadgeAward, BadgeDefinition
     from gamification.points.models import ClassPointConfig, PointTransaction
-    from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride
-    from tasks.templates.models import TaskAssignment, TaskTemplate
+    from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride, AttendanceCorrection
+    from tasks.templates.models import TaskAssignment, TaskTemplate, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
+    from community.feed.models import FeedPost
 
     client = AsyncMongoMockClient()
     db = client.get_database("test_pages")
@@ -51,9 +59,11 @@ async def db_app():
         database=db,
         document_models=[
             User, Class, ClassMembership,
-            TaskTemplate, TaskAssignment, TaskSubmission,
-            CheckinConfig, DailyCheckinOverride, CheckinRecord,
+            TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
+            CheckinConfig, DailyCheckinOverride, CheckinRecord, AttendanceCorrection,
             PointTransaction, ClassPointConfig,
+            BadgeDefinition, BadgeAward,
+            FeedPost,
         ],
     )
 
@@ -450,3 +460,87 @@ async def test_my_badges_navigation_link_resolves_correctly(db_app_with_badges):
         response = await ac.get("/pages/students/me/badges", follow_redirects=False)
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
+
+
+# ---------------------------------------------------------------------------
+# Access-control: rejection detail page (task 13.5)
+# ---------------------------------------------------------------------------
+
+async def test_rejection_detail_page_owner_can_access(db_app):
+    """Owner can view their rejection detail page (Student views rejection detail page)."""
+    from tasks.submissions.models import TaskSubmission
+    app, student, teacher = db_app
+    sub = TaskSubmission(
+        template_id="t1",
+        template_snapshot={"name": "Test"},
+        field_values={"notes": "hi"},
+        student_id=str(student.id),
+        class_id="cls1",
+        date=__import__("datetime").date.today(),
+        status="rejected",
+        rejection_reason="Bad",
+    )
+    await sub.insert()
+
+    cookies = _auth_cookie(str(student.id), int(STUDENT))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies) as ac:
+        response = await ac.get(f"/pages/student/submissions/{sub.id}/rejection", follow_redirects=False)
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+
+
+async def test_rejection_detail_page_non_owner_forbidden(db_app):
+    """Non-owner cannot access rejection detail (Non-owner cannot access rejection detail)."""
+    from tasks.submissions.models import TaskSubmission
+    app, student, teacher = db_app
+    # Submission belongs to student; teacher tries to access it
+    sub = TaskSubmission(
+        template_id="t1",
+        template_snapshot={"name": "Test"},
+        field_values={"notes": "hi"},
+        student_id=str(student.id),
+        class_id="cls1",
+        date=__import__("datetime").date.today(),
+        status="rejected",
+        rejection_reason="Bad",
+    )
+    await sub.insert()
+
+    cookies = _auth_cookie(str(teacher.id), int(TEACHER))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies) as ac:
+        response = await ac.get(f"/pages/student/submissions/{sub.id}/rejection", follow_redirects=False)
+    assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Access-control: attendance management page (task 13.5)
+# ---------------------------------------------------------------------------
+
+async def test_attendance_manage_page_teacher_can_access(db_app):
+    """Teacher can access attendance management page (Teacher views daily attendance list)."""
+    from core.classes.models import Class, ClassMembership
+    from gamification.points.models import ClassPointConfig
+    app, student, teacher = db_app
+    cls = Class(name="Math", visibility="public", owner_id=str(teacher.id), invite_code="XYZ")
+    await cls.insert()
+    await ClassMembership(class_id=str(cls.id), user_id=str(teacher.id), role="teacher").insert()
+    await ClassPointConfig(class_id=str(cls.id), checkin_points=5, submission_points=10).insert()
+
+    cookies = _auth_cookie(str(teacher.id), int(TEACHER))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies) as ac:
+        response = await ac.get(f"/pages/teacher/classes/{cls.id}/attendance", follow_redirects=False)
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+
+
+async def test_attendance_manage_page_student_forbidden(db_app):
+    """Student cannot access attendance management page (Teacher views daily attendance list)."""
+    from core.classes.models import Class
+    app, student, teacher = db_app
+    cls = Class(name="Math", visibility="public", owner_id=str(teacher.id), invite_code="XYZ")
+    await cls.insert()
+
+    cookies = _auth_cookie(str(student.id), int(STUDENT))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies) as ac:
+        response = await ac.get(f"/pages/teacher/classes/{cls.id}/attendance", follow_redirects=False)
+    assert response.status_code in (403, 401)

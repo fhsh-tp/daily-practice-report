@@ -2,10 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from core.auth.deps import get_current_user
-from core.auth.permissions import MANAGE_OWN_CLASS as MANAGE_CLASS
+from core.auth.permissions import MANAGE_ALL_CLASSES, MANAGE_OWN_CLASS as MANAGE_CLASS
 from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
+from pages.deps import get_page_user
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 
 router = APIRouter(tags=["leaderboard"])
@@ -49,6 +51,14 @@ async def class_leaderboard(
     if cls is None:
         raise HTTPException(status_code=404, detail="Class not found")
 
+    if not (user.permissions & MANAGE_ALL_CLASSES):
+        membership = await ClassMembership.find_one(
+            ClassMembership.class_id == class_id,
+            ClassMembership.user_id == str(user.id),
+        )
+        if membership is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this class")
+
     if not (user.permissions & MANAGE_CLASS) and not cls.leaderboard_enabled:
         return {"visible": False, "message": "Leaderboard is not enabled for this class"}
 
@@ -87,7 +97,7 @@ async def cross_class_leaderboard(user: User = Depends(get_current_user)):
 async def leaderboard_page(
     request: Request,
     class_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_page_user),
 ):
     cls = await Class.get(class_id)
     if cls is None:
@@ -101,8 +111,9 @@ async def leaderboard_page(
         count = await BadgeAward.find(BadgeAward.student_id == entry["student_id"]).count()
         entry["badge_count"] = count
 
+    page_ctx = await build_page_context(user)
     return {
-        "current_user": user,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "visible": visible,

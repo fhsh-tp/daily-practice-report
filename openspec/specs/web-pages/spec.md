@@ -1,401 +1,172 @@
-# web-pages Specification
-
-## Purpose
-
-Defines the HTML page layer of the application: shared template infrastructure (WebPage singleton), page routes, page-aware authentication, and the POST-Redirect-GET (PRG) pattern used by all form submissions.
-
 ## Requirements
 
-### Requirement: WebPage singleton provides shared template rendering
+### Requirement: Student dashboard shows today's tasks across all classes with search
 
-The system SHALL maintain a single `WebPage` instance (from `fastapi-webpage`) in `shared/webpage.py`. All page handlers MUST use this singleton instead of instantiating `Jinja2Templates` directly. The singleton SHALL expose `webpage_context` for global template variables.
+The student dashboard page SHALL display one task card per class the student belongs to, representing today's assigned task (if any). The page SHALL include a search input that filters task cards in real time by task name, class name, or teacher display name. Filtering SHALL be client-side with no additional API calls.
 
-#### Scenario: site_name available in all templates
+#### Scenario: Dashboard shows today's task for each enrolled class
 
-- **WHEN** the application lifespan completes and a `SystemConfig` document exists
-- **THEN** all template renders SHALL have `{{ webpage.site_name }}` available with the configured site name
+- **WHEN** a student views their dashboard
+- **THEN** the page SHALL render one task card per class showing the class name, today's task name, and submit status (submitted / not submitted)
 
-#### Scenario: Multiple routers share one instance
+#### Scenario: Student searches tasks by task name
 
-- **WHEN** two different routers render templates
-- **THEN** both SHALL use the same `WebPage` instance and receive the same `webpage_context`
+- **WHEN** a student types a query into the search input
+- **THEN** the page SHALL immediately hide task cards whose task name, class name, and teacher name do not match the query (case-insensitive)
 
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
+#### Scenario: No tasks today shows empty state per class
 
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
-code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
-  - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
-  - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
-  - src/pages/router.py
-  - src/community/feed/router.py
-tests:
-  - tests/test_pages.py
--->
+- **WHEN** a class has no task assigned for today
+- **THEN** the task card for that class SHALL indicate "今日無任務" and SHALL remain searchable by class name
 
 ---
-### Requirement: Login page renders HTML login form
+### Requirement: Student sidebar shows class navigation
 
-The system SHALL serve an HTML login form at `GET /pages/login`. The page SHALL NOT require authentication. If an `error` query parameter is present, the page SHALL display it.
+The shared sidebar SHALL render a "我的班級" section for authenticated students (non-teacher, non-admin users). Each class the student belongs to SHALL appear as a collapsible nav entry. When expanded, each class SHALL expose links to its task history and leaderboard pages.
 
-#### Scenario: Login page shown to unauthenticated user
+#### Scenario: Student sidebar lists enrolled classes
 
-- **WHEN** an unauthenticated user navigates to `GET /pages/login`
-- **THEN** the system SHALL return an HTML page containing a username/password form
+- **WHEN** an authenticated student views any page
+- **THEN** the sidebar SHALL display a "我的班級" section listing each class they belong to
 
-#### Scenario: Error message displayed after failed login
+#### Scenario: Class entry links to task history
 
-- **WHEN** `GET /pages/login?error=帳號或密碼錯誤` is requested
-- **THEN** the page SHALL display the error message
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
-
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
-code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
-  - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
-  - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
-  - src/pages/router.py
-  - src/community/feed/router.py
-tests:
-  - tests/test_pages.py
--->
+- **WHEN** a student expands a class entry in the sidebar
+- **THEN** the entry SHALL include a link to the class-specific task history page
 
 ---
-### Requirement: Dashboard is the unified authenticated entry point
+### Requirement: Create class button works from any page
 
-The system SHALL serve a dashboard page at `GET /pages/dashboard`. The page SHALL require authentication. The page content SHALL vary based on the authenticated user's permissions. The dashboard layout SHALL consist of three sections rendered in order:
+The "新增班級" button in the teacher sidebar SHALL navigate to `GET /pages/dashboard?create_class=1` on any page. The button SHALL display a single plus icon (SVG) followed by the text "新增班級" without any additional plus character in the text. The dashboard SHALL detect the `create_class=1` query parameter and automatically open the create-class modal on page load.
 
-1. **Widget Grid** — a row of stat cards showing the current user's total points, badge count, consecutive-day streak, and total submission count. When the viewer has `MANAGE_CLASS` permission, the Widget Grid SHALL instead show class-aggregate statistics: total enrolled students, today's checkin count, and today's submission count.
-2. **Class Card Grid** — one card per enrolled (or managed) class. Each card SHALL display the class name, today's checkin and submission status, and primary action links (checkin, submit task). Teacher cards SHALL additionally include a teacher toolbar row with links to templates, points management, and member list.
-3. **Activity Feed** — a chronological timeline of the authenticated user's recent activity (checkins, submissions, badge awards), limited to the 20 most recent entries.
+#### Scenario: Create class button navigates to dashboard with param
 
-#### Scenario: Student views dashboard
+- **WHEN** a teacher clicks "新增班級" from any page other than the dashboard
+- **THEN** the browser SHALL navigate to `GET /pages/dashboard?create_class=1`
 
-- **WHEN** a student navigates to `GET /pages/dashboard`
-- **THEN** the page SHALL display the Widget Grid with the student's personal stats, the Class Card Grid with enrolled classes, and the Activity Feed with their recent events
+#### Scenario: Dashboard opens modal when param present
 
-#### Scenario: Teacher views dashboard
+- **WHEN** the dashboard loads with `?create_class=1` in the URL
+- **THEN** the create-class modal SHALL open automatically without further user interaction
 
-- **WHEN** a user with `MANAGE_CLASS` permission navigates to `GET /pages/dashboard`
-- **THEN** the Widget Grid SHALL show class-aggregate statistics and each class card SHALL include a teacher toolbar with management links
+#### Scenario: Create class button shows single icon
 
-#### Scenario: Error message shown on dashboard
+- **WHEN** the teacher sidebar renders the "新增班級" button
+- **THEN** the button SHALL display exactly one plus icon (the SVG) and the text "新增班級" without a full-width "＋" character prefix
 
-- **WHEN** `GET /pages/dashboard?error=<message>` is requested by an authenticated user
-- **THEN** the page SHALL display the error message
+---
+### Requirement: Student dashboard layout
+
+The student dashboard SHALL NOT display inline class cards with embedded task information as the primary layout. Instead, the dashboard SHALL focus on today's task cards (one per class) with a search bar. Class navigation SHALL be provided through the sidebar's "我的班級" section. Statistical widgets (total points, badges, streak) SHALL remain on the dashboard.
+
+#### Scenario: Dashboard shows task cards not class management cards
+
+- **WHEN** a student views their dashboard
+- **THEN** the page SHALL display task cards for today's assignments grouped by class
+- **AND** the page SHALL NOT display the class management card format used previously (which embedded check-in status and teacher tools inline)
 
 
 <!-- @trace
-source: ui-redesign-academic-pro
-updated: 2026-03-19
+source: task-review-attendance-dashboard
+updated: 2026-03-22
 code:
-  - src/templates/community/leaderboard.html
-  - src/templates/login.html
-  - src/templates/setup.html
-  - src/templates/teacher/template_form.html
-  - src/templates/student/badges.html
   - src/templates/student/dashboard.html
+  - src/gamification/points/models.py
+  - src/templates/student/learning_history.html
+  - src/tasks/checkin/models.py
+  - src/tasks/checkin/router.py
+  - src/tasks/submissions/models.py
+  - src/templates/shared/base.html
   - src/templates/teacher/points_manage.html
-  - src/templates/community/feed.html
-  - src/templates/teacher/templates_list.html
-  - src/templates/shared/base.html
+  - src/templates/teacher/attendance_manage.html
   - src/templates/student/submit_task.html
--->
-
----
-### Requirement: Dashboard displays gamified badge strip
-
-The dashboard page SHALL render a horizontal scrollable badge strip below the Widget Grid, showing the user's most recently earned badges (up to 10). Each badge item SHALL display the badge icon and name. Unearned badge slots SHALL be shown in a visually muted locked state to communicate progress.
-
-#### Scenario: Earned badges shown in strip
-
-- **WHEN** a student has earned at least one badge
-- **THEN** the badge strip SHALL show those badges with full color and label
-
-#### Scenario: Empty badge strip hidden
-
-- **WHEN** a student has earned no badges
-- **THEN** the badge strip section SHALL not render
-
-<!-- @trace
-source: ui-redesign-academic-pro
-updated: 2026-03-19
--->
-
-
-<!-- @trace
-source: ui-redesign-academic-pro
-updated: 2026-03-19
-code:
-  - src/templates/community/leaderboard.html
-  - src/templates/login.html
-  - src/templates/setup.html
-  - src/templates/teacher/template_form.html
-  - src/templates/student/badges.html
-  - src/templates/student/dashboard.html
-  - src/templates/teacher/points_manage.html
-  - src/templates/community/feed.html
-  - src/templates/teacher/templates_list.html
-  - src/templates/shared/base.html
-  - src/templates/student/submit_task.html
--->
-
----
-### Requirement: Root route redirects based on authentication state
-
-`GET /` SHALL redirect to `GET /pages/dashboard` if the user is authenticated, or to `GET /pages/login` if not.
-
-#### Scenario: Authenticated user hits root
-
-- **WHEN** an authenticated user navigates to `/`
-- **THEN** the system SHALL redirect to `/pages/dashboard` (HTTP 302)
-
-#### Scenario: Unauthenticated user hits root
-
-- **WHEN** an unauthenticated user navigates to `/`
-- **THEN** the system SHALL redirect to `/pages/login` (HTTP 302)
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
-
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
-code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
+  - src/templates/student/class_history.html
+  - src/tasks/submissions/service.py
+  - src/pages/router.py
   - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
   - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
-  - src/pages/router.py
-  - src/community/feed/router.py
+  - src/templates/teacher/submission_review.html
+  - src/templates/student/submission_rejection.html
+  - src/community/feed/models.py
 tests:
+  - tests/test_submission_approval.py
+  - tests/test_resubmission.py
+  - tests/test_attendance_management.py
   - tests/test_pages.py
+  - tests/test_submissions.py
 -->
 
 ---
-### Requirement: Page-aware auth dependency redirects to login
+### Requirement: Teacher sidebar uses class dropdown selector with search
 
-A page-specific authentication dependency SHALL redirect unauthenticated requests to `GET /pages/login` with a `next` query parameter instead of returning HTTP 401.
+The teacher sidebar SHALL replace the expandable class list with a dropdown class selector. The selector SHALL display the currently active class name with a dropdown indicator. Clicking the selector SHALL expand a dropdown panel containing a search input and a scrollable list of all non-archived classes the teacher manages. Selecting a class SHALL navigate to that class's hub page. The search input SHALL filter classes by name in real time (client-side).
 
-#### Scenario: Unauthenticated page request redirected to login
+#### Scenario: Teacher sees class selector in sidebar
 
-- **WHEN** an unauthenticated user accesses a protected page
-- **THEN** the system SHALL redirect to `/pages/login?next=<original_path>` (HTTP 302)
+- **WHEN** a teacher views any page with the teacher sidebar
+- **THEN** the sidebar SHALL display a dropdown selector showing the currently active class name under the "班級管理" section label
 
-#### Scenario: Authenticated request proceeds normally
+#### Scenario: Teacher expands class selector
 
-- **WHEN** a user with a valid session accesses a protected page
-- **THEN** the system SHALL serve the page normally
+- **WHEN** a teacher clicks the class dropdown selector
+- **THEN** the sidebar SHALL display a dropdown panel with a search input at the top and a scrollable list of all non-archived classes
 
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
+#### Scenario: Teacher searches classes
 
+- **WHEN** a teacher types into the class selector search input
+- **THEN** the class list SHALL immediately filter to show only classes whose name contains the search query (case-insensitive)
 
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
-code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
-  - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
-  - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
-  - src/pages/router.py
-  - src/community/feed/router.py
-tests:
-  - tests/test_pages.py
--->
+#### Scenario: Teacher selects a different class
+
+- **WHEN** a teacher clicks a class in the dropdown list
+- **THEN** the browser SHALL navigate to that class's hub page at `/pages/teacher/class/{class_id}`
+
+#### Scenario: Active class shows expanded tool links
+
+- **WHEN** a class is selected (active) in the sidebar
+- **THEN** the sidebar SHALL display indented tool links below the class selector: 成員管理, 任務模板, 任務審查, 簽到設定, 出席紀錄, 排行榜, 積分管理
 
 ---
-### Requirement: All form POSTs use POST-Redirect-GET pattern
+### Requirement: Teacher sidebar includes submission review and attendance links
 
-Every HTML form submission endpoint SHALL redirect after processing. On success, it SHALL redirect to the appropriate page. On failure, it SHALL redirect back to the originating page with an `error` query parameter.
+The teacher sidebar's class tool links SHALL include "任務審查" linking to `/pages/teacher/class/{class_id}/submissions` and "出席紀錄" linking to `/pages/teacher/classes/{class_id}/attendance` in addition to the existing tool links.
 
-#### Scenario: Successful form POST redirects to target page
+#### Scenario: Sidebar shows submission review link
 
-- **WHEN** a form POST succeeds
-- **THEN** the system SHALL respond with an HTTP 302 redirect to the designated success page
+- **WHEN** a teacher views the sidebar with an active class
+- **THEN** the class tool links SHALL include "任務審查" that navigates to the submission review page
 
-#### Scenario: Failed form POST redirects with error
+#### Scenario: Sidebar shows attendance link
 
-- **WHEN** a form POST fails due to validation or business logic
-- **THEN** the system SHALL redirect to the originating GET page with `?error=<message>` (HTTP 302)
-- **AND** the browser SHALL NOT re-submit on refresh
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
--->
-
-<!-- @trace
-source: ui-pages-fastapi-webpage
-updated: 2026-03-18
-code:
-  - src/gamification/points/router.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/login.html
-  - src/core/auth/permissions.py
-  - src/main.py
-  - src/pages/deps.py
-  - src/gamification/badges/router.py
-  - src/templates/shared/base.html
-  - src/tasks/templates/router.py
-  - src/shared/webpage.py
-  - src/tasks/checkin/router.py
-  - src/tasks/submissions/router.py
-  - src/core/auth/router.py
-  - src/core/system/router.py
-  - src/pages/__init__.py
-  - src/templates/student/submit_task.html
-  - src/pages/router.py
-  - src/community/feed/router.py
-tests:
-  - tests/test_pages.py
--->
+- **WHEN** a teacher views the sidebar with an active class
+- **THEN** the class tool links SHALL include "出席紀錄" that navigates to the attendance management page
 
 ---
-### Requirement: Admin page group requires admin-level permission
+### Requirement: Sidebar merges admin sections into unified platform management
 
-The system SHALL register a set of routes under `/pages/admin/*` in the pages router. Every route in this group MUST use a dependency that verifies the authenticated user holds at least `MANAGE_USERS` OR `WRITE_SYSTEM`. Any route within the group MAY add further per-route permission checks beyond this baseline.
+The sidebar SHALL merge the "管理工具" and "管理員" sections into a single "平台管理" section. The section SHALL appear when the user has `MANAGE_USERS`, `MANAGE_ALL_CLASSES`, or `WRITE_SYSTEM` permission. Individual items SHALL be rendered based on the user's specific permissions: "使用者管理" (requires `MANAGE_USERS`), "班級管理" (requires `MANAGE_ALL_CLASSES`), "系統管理" (requires `WRITE_SYSTEM`).
 
-#### Scenario: Base admin guard allows user with MANAGE_USERS
+#### Scenario: Full admin sees all platform management items
 
-- **WHEN** a user with `MANAGE_USERS` accesses any `/pages/admin/*` route
-- **THEN** the route handler SHALL execute and return the page
+- **WHEN** a user with `MANAGE_USERS`, `MANAGE_ALL_CLASSES`, and `WRITE_SYSTEM` views the sidebar
+- **THEN** the sidebar SHALL display a single "平台管理" section containing "使用者管理", "班級管理", and "系統管理"
 
-#### Scenario: Base admin guard allows user with WRITE_SYSTEM
+#### Scenario: Teacher with no admin permissions sees no platform management
 
-- **WHEN** a user with `WRITE_SYSTEM` (but without `MANAGE_USERS`) accesses `/pages/admin/`
-- **THEN** the route handler SHALL execute and return the overview page
-
-#### Scenario: User without admin permissions receives 403
-
-- **WHEN** a user holding only `STUDENT` permissions accesses any `/pages/admin/*` route
-- **THEN** the system SHALL return HTTP 403
-
-
-<!-- @trace
-source: admin-management-panel
-updated: 2026-03-19
-code:
-  - src/templates/admin/index.html
-  - src/templates/admin/layout.html
-  - src/core/users/router.py
-  - src/templates/admin/system_settings.html
-  - src/templates/shared/base.html
-  - src/templates/admin/users_list.html
-  - src/core/system/router.py
-  - src/core/auth/permissions.py
-  - src/templates/admin/user_form.html
-  - src/pages/router.py
-tests:
-  - tests/test_admin_permissions.py
-  - tests/test_admin_system.py
-  - tests/test_admin_users.py
-  - tests/auth/test_permissions.py
-  - tests/test_admin_pages.py
--->
+- **WHEN** a user with only `MANAGE_OWN_CLASS` and `MANAGE_TASKS` views the sidebar
+- **THEN** the sidebar SHALL NOT display the "平台管理" section
 
 ---
-### Requirement: Admin templates use a shared admin layout
+### Requirement: All teacher and admin pages display breadcrumb navigation
 
-The system SHALL provide a Jinja2 base template at `src/templates/admin/layout.html` that all admin pages extend. The layout MUST include the admin navigation bar described in the admin-panel spec. Admin templates MUST be placed under `src/templates/admin/`.
+Every teacher page SHALL display a breadcrumb navigation above the page title showing the path: "儀表板 > {class_name} > {current_page}". Admin pages SHALL display: "平台管理 > {current_page}". Breadcrumb items SHALL be clickable links to their respective pages.
 
-#### Scenario: Admin pages share consistent layout
+#### Scenario: Class hub shows breadcrumb
 
-- **WHEN** any admin page is rendered
-- **THEN** the HTML MUST include the admin navigation bar from `admin/layout.html`
+- **WHEN** a teacher views the class hub for class "test1"
+- **THEN** the page SHALL display breadcrumb: "儀表板 > test1" where "儀表板" links to the dashboard
 
-<!-- @trace
-source: admin-management-panel
-updated: 2026-03-19
-code:
-  - src/templates/admin/index.html
-  - src/templates/admin/layout.html
-  - src/core/users/router.py
-  - src/templates/admin/system_settings.html
-  - src/templates/shared/base.html
-  - src/templates/admin/users_list.html
-  - src/core/system/router.py
-  - src/core/auth/permissions.py
-  - src/templates/admin/user_form.html
-  - src/pages/router.py
-tests:
-  - tests/test_admin_permissions.py
-  - tests/test_admin_system.py
-  - tests/test_admin_users.py
-  - tests/auth/test_permissions.py
-  - tests/test_admin_pages.py
--->
+#### Scenario: Nested teacher page shows full breadcrumb
+
+- **WHEN** a teacher views the members page for class "test1"
+- **THEN** the page SHALL display breadcrumb: "儀表板 > test1 > 成員管理" where each segment links to its respective page

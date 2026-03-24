@@ -9,7 +9,7 @@
       {% if badges %}已獲得 {{ badges | length }} 枚徽章{% else %}繼續努力，解鎖你的第一枚徽章！{% endif %}
     </p>
   </div>
-  <a href="/pages/dashboard"
+  <a href="{{ url_for('dashboard_page') }}"
      class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-150">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -45,7 +45,7 @@
       <p class="text-xs text-gray-500 dark:text-gray-400 text-center leading-tight">{{ award.reason }}</p>
       {% endif %}
       <p class="text-xs text-brand-600 dark:text-brand-400 font-medium text-center">
-        {{ award.awarded_at[:10] }}
+        {{ award.awarded_at.strftime('%Y-%m-%d') }}
       </p>
     </div>
   </div>

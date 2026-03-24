@@ -24,6 +24,8 @@ async def setup_app():
     app.state.redis = r
     app.state.system_config = None  # not configured yet
 
+    from pages.router import router as pages_router
+    app.include_router(pages_router)
     app.include_router(system_router)
     yield app, r
 

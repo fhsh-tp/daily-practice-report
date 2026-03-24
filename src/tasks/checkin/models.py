@@ -1,6 +1,6 @@
 """Checkin Beanie Documents."""
 from datetime import date, datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from beanie import Document
 from pydantic import Field
@@ -40,3 +40,22 @@ class CheckinRecord(Document):
 
     class Settings:
         name = "checkinrecords"
+
+
+class AttendanceCorrection(Document):
+    """Teacher manual attendance correction — only created for exceptions (late / actually absent).
+
+    source_event values used in PointTransaction:
+      "checkin_manual_late"   — positive tx, teacher awards partial points to late student
+      "checkin_manual_revoke" — negative tx, teacher revokes points from student marked absent
+    """
+    class_id: str
+    student_id: str
+    date: date
+    status: Literal["late", "absent"]
+    partial_points: int | None = None  # required when status=="late"
+    created_by: str  # teacher user_id
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "attendancecorrections"

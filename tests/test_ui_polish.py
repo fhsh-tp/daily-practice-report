@@ -35,12 +35,13 @@ async def db_points_app():
     from core.auth.router import router as auth_router
     from core.classes.models import Class, ClassMembership
     from core.users.models import User
+    from gamification.badges.models import BadgeAward, BadgeDefinition
     from gamification.points.models import ClassPointConfig, PointTransaction
     from pages.router import router as pages_router
     from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverride
     from tasks.submissions.models import TaskSubmission
     from tasks.submissions.router import router as submissions_router
-    from tasks.templates.models import TaskAssignment, TaskTemplate
+    from tasks.templates.models import TaskAssignment, TaskTemplate, TaskScheduleRule
 
     client = AsyncMongoMockClient()
     db = client.get_database("test_points_dashboard")
@@ -72,10 +73,15 @@ async def db_points_app():
         source_id="evt1",
     ).insert()
 
+    from gamification.badges.router import router as badges_router
+    from tasks.templates.router import router as templates_router
+
     app = FastAPI()
     app.include_router(auth_router)
     app.include_router(pages_router)
     app.include_router(submissions_router)
+    app.include_router(badges_router)
+    app.include_router(templates_router)
 
     from core.auth.jwt import create_access_token
     token = create_access_token(user_id=str(student.id), permissions=int(STUDENT))

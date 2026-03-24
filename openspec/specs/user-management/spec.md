@@ -480,6 +480,42 @@ tests:
 -->
 
 ---
+### Requirement: Admin user creation form requires email
+
+The admin user creation form SHALL mark the email field as required and SHALL validate presence before submission.
+
+#### Scenario: Form shows email as required
+
+- **WHEN** an admin opens the create user form
+- **THEN** the email field SHALL be marked as required with a visual indicator
+
+#### Scenario: Form submission blocked without email
+
+- **WHEN** an admin submits the create user form with an empty email field
+- **THEN** the form SHALL prevent submission and display an error message
+
+<!-- @trace
+source: user-profile-gravatar
+updated: 2026-03-20
+-->
+
+
+<!-- @trace
+source: user-profile-gravatar
+updated: 2026-03-20
+code:
+  - src/shared/webpage.py
+  - src/shared/gravatar.py
+  - src/pages/router.py
+  - src/templates/admin/user_form.html
+  - src/templates/shared/base.html
+  - src/templates/settings.html
+tests:
+  - tests/test_settings.py
+  - tests/test_gravatar_filter.py
+-->
+
+---
 ### Requirement: Authenticated user can update own display name
 
 The system SHALL provide `PUT /auth/profile` allowing an authenticated user to update only their `display_name`. All other fields MUST be ignored in this endpoint. The endpoint MUST reject unauthenticated requests with HTTP 401.

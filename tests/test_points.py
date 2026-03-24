@@ -111,3 +111,39 @@ async def test_submission_reward_provider_awards_points(db, student):
     tx = await provider.award(event)
     assert tx is not None
     assert tx.amount == 10
+
+
+# --- Teacher deduct (teacher_deduct entry type) ---
+
+async def test_teacher_deduct_creates_negative_transaction(db, student):
+    """Teacher deduct creates a PointTransaction with source_event='teacher_deduct' (task 2.1)."""
+    from gamification.points.service import award_points, deduct_points, get_balance
+    await award_points(str(student.id), "cls1", 20, "submission", "evt1")
+    tx = await deduct_points(
+        student_id=str(student.id),
+        class_id="cls1",
+        amount=5,
+        reason="誤用積分",
+        deducted_by="teacher1",
+    )
+    assert tx.amount == -5
+    assert tx.source_event == "teacher_deduct"
+    assert tx.reason == "誤用積分"
+
+
+async def test_teacher_deduct_balance_reflects_deduction(db, student):
+    """Student balance reflects teacher_deduct transaction (task 2.3)."""
+    from gamification.points.service import award_points, deduct_points, get_balance
+    await award_points(str(student.id), "cls1", 30, "submission", "evt1")
+    await deduct_points(str(student.id), "cls1", 10, "penalty", "teacher1")
+    assert await get_balance(str(student.id)) == 20
+
+
+async def test_teacher_deduct_not_capped_at_balance(db, student):
+    """Teacher deduct does not cap at current balance (unlike revoke_points)."""
+    from gamification.points.service import award_points, deduct_points, get_balance
+    await award_points(str(student.id), "cls1", 5, "submission", "evt1")
+    tx = await deduct_points(str(student.id), "cls1", 100, "over-deduct", "teacher1")
+    assert tx.amount == -100
+    # Balance can go negative
+    assert await get_balance(str(student.id)) == -95

@@ -288,7 +288,7 @@ tests:
 ---
 ### Requirement: Teacher manages class members
 
-A user SHALL be able to manage a class's members only if they hold `MANAGE_ALL_CLASSES`, or if they hold `MANAGE_OWN_CLASS` AND have a `ClassMembership` with role `teacher` in that class. Management operations include: removing students, promoting co-teachers, and regenerating the invite code. The system MUST reject management operations from users who do not satisfy these conditions with HTTP 403.
+A user SHALL be able to manage a class's members only if they hold `MANAGE_ALL_CLASSES`, or if they hold `MANAGE_OWN_CLASS` AND have a `ClassMembership` with role `teacher` in that class. Management operations include: removing students, promoting co-teachers, and regenerating the invite code. The system MUST reject management operations from users who do not satisfy these conditions with HTTP 403. The class members page SHALL use a two-column layout: the left column for batch invite search and the right column for the current member list. The page SHALL NOT display the invite code (moved to class hub page).
 
 #### Scenario: Class teacher manages their own class
 
@@ -310,45 +310,15 @@ A user SHALL be able to manage a class's members only if they hold `MANAGE_ALL_C
 - **WHEN** an authorized teacher removes a student from a class
 - **THEN** the student SHALL no longer appear in the class roster and SHALL NOT be able to submit tasks for that class
 
+#### Scenario: Members page uses two-column layout
 
-<!-- @trace
-source: permission-identity-refactor
-updated: 2026-03-19
-code:
-  - src/core/classes/router.py
-  - src/core/users/schemas.py
-  - src/core/classes/service.py
-  - src/core/users/router.py
-  - src/templates/student/dashboard.html
-  - src/templates/teacher/class_members.html
-  - src/pages/router.py
-  - src/core/auth/router.py
-  - src/tasks/checkin/router.py
-  - src/tasks/templates/router.py
-  - src/core/classes/models.py
-  - src/templates/admin/classes_list.html
-  - scripts/migrations/20260319_003_init_identity_tags.py
-  - src/community/feed/router.py
-  - src/core/users/models.py
-  - src/gamification/leaderboard/router.py
-  - src/templates/admin/layout.html
-  - src/templates/admin/user_form.html
-  - src/templates/admin/users_list.html
-  - src/templates/shared/base.html
-  - src/templates/teacher/template_assign.html
-  - src/templates/teacher/template_form.html
-  - scripts/migrations/20260319_002_manage_class_rename.py
-  - src/core/auth/permissions.py
-tests:
-  - tests/test_class_permissions.py
-  - tests/test_admin_permissions.py
-  - tests/test_identity_tags.py
-  - tests/test_auth.py
-  - tests/auth/test_user_model.py
-  - tests/test_user_visibility.py
-  - tests/auth/test_guards.py
-  - tests/auth/test_permissions.py
--->
+- **WHEN** a teacher views the class members page
+- **THEN** the page SHALL display a two-column layout with batch invite search on the left and current member list on the right
+
+#### Scenario: Members page does not show invite code
+
+- **WHEN** a teacher views the class members page
+- **THEN** the page SHALL NOT display the class invite code section (invite code is on the class hub page)
 
 ---
 ### Requirement: Class invite code regeneration
@@ -462,4 +432,80 @@ tests:
   - tests/test_user_visibility.py
   - tests/auth/test_guards.py
   - tests/auth/test_permissions.py
+-->
+---
+### Requirement: Class list view separates active and archived classes
+
+The class management view SHALL visually separate active classes from archived classes using a tab interface.
+
+#### Scenario: Active and archived classes in separate tabs
+
+- **WHEN** the class list is rendered
+- **THEN** active (non-archived) classes SHALL appear in the 運作中 tab and archived classes SHALL appear in the 已封存 tab
+
+#### Scenario: Tab counts reflect actual class counts
+
+- **WHEN** the class list is rendered
+- **THEN** each tab label SHALL display the count of classes in that category
+
+<!-- @trace
+source: teacher-class-ux-refactor
+updated: 2026-03-20
+-->
+
+<!-- @trace
+source: teacher-class-ux-refactor
+updated: 2026-03-20
+code:
+  - src/templates/shared/base.html
+  - src/templates/teacher/class_hub.html
+  - src/pages/router.py
+  - src/templates/admin/classes_list.html
+tests:
+  - tests/test_bug_fixes.py
+  - tests/test_class_hub_page.py
+-->
+
+<!-- @trace
+source: teacher-class-ux-refactor
+updated: 2026-03-21
+code:
+  - CLAUDE.md
+-->
+
+---
+### Requirement: Class stores optional Discord Webhook URL
+
+The Class model SHALL include an optional field `discord_webhook_url` (string, nullable) for storing the class Discord integration endpoint.
+
+#### Scenario: New class has null webhook URL
+
+- **WHEN** a new class is created
+- **THEN** `discord_webhook_url` SHALL default to null
+
+#### Scenario: Webhook URL is only visible to class managers
+
+- **WHEN** a student views class information
+- **THEN** the `discord_webhook_url` SHALL NOT be exposed in any student-facing API response or template
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+-->
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+code:
+  - src/integrations/discord/service.py
+  - src/tasks/templates/router.py
+  - src/core/classes/router.py
+  - src/templates/teacher/class_hub.html
+  - src/integrations/__init__.py
+  - src/templates/teacher/template_assign.html
+  - src/core/classes/models.py
+  - src/pages/router.py
+  - src/integrations/discord/__init__.py
+tests:
+  - tests/test_discord_integration.py
 -->

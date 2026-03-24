@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from core.auth.deps import get_current_user
 from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_TASKS
+from core.classes.models import Class
+from core.classes.service import can_manage_class
 from core.users.models import User
 from gamification.prizes.models import Prize
 
@@ -37,6 +39,10 @@ async def create_prize(
     body: PrizeCreateRequest,
     teacher: User = Depends(require_permission(MANAGE_TASKS)),
 ):
+    cls = await Class.get(class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
     prize = Prize(
         class_id=class_id,
         title=body.title,
@@ -83,6 +89,9 @@ async def update_prize(
     prize = await Prize.get(prize_id)
     if prize is None:
         raise HTTPException(status_code=404, detail="Prize not found")
+    cls = await Class.get(prize.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
     updates = body.model_dump(exclude_none=True)
     for field, value in updates.items():
@@ -99,4 +108,7 @@ async def delete_prize(
     prize = await Prize.get(prize_id)
     if prize is None:
         raise HTTPException(status_code=404, detail="Prize not found")
+    cls = await Class.get(prize.class_id)
+    if cls is None or not await can_manage_class(teacher, cls):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     await prize.delete()

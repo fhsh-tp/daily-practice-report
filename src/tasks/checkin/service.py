@@ -7,6 +7,10 @@ from tasks.checkin.models import CheckinConfig, CheckinRecord, DailyCheckinOverr
 from core.users.models import User
 
 
+class MembershipError(ValueError):
+    """Raised when the student is not a member of the target class."""
+
+
 @dataclass
 class CheckinStatus:
     is_open: bool
@@ -153,8 +157,18 @@ async def do_checkin(
     Record a student check-in.
 
     Raises:
+        MembershipError: If the student is not a member of the class.
         ValueError: If check-in window is not open or student already checked in today.
     """
+    # Verify class membership — prevents non-members from checking in
+    from core.classes.models import ClassMembership
+    membership = await ClassMembership.find_one(
+        ClassMembership.class_id == class_id,
+        ClassMembership.user_id == str(student.id),
+    )
+    if not membership:
+        raise MembershipError("Not a member of this class")
+
     status = await is_checkin_open(class_id, now)
     if not status.is_open:
         raise ValueError(f"Check-in is not open: {status.reason}")
