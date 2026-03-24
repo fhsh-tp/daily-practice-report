@@ -2,6 +2,7 @@
 import pytest
 from mongomock_motor import AsyncMongoMockClient
 from beanie import init_beanie
+from httpx import AsyncClient, ASGITransport
 
 
 @pytest.fixture
@@ -63,3 +64,49 @@ async def test_delete_prize(db, teacher):
     await prize.insert()
     await prize.delete()
     assert await Prize.get(prize.id) is None
+
+
+# ─── Router-level test: student visibility filter ────────────────────────────
+
+@pytest.fixture
+async def prizes_app(db):
+    from core.users.models import User, IdentityTag
+    from core.auth.password import hash_password
+    from core.auth.permissions import STUDENT
+    from fastapi import FastAPI
+    from gamification.prizes.router import router as prizes_router
+
+    student = User(
+        username="stu_list",
+        hashed_password=hash_password("pw"),
+        display_name="Student",
+        permissions=int(STUDENT),
+        identity_tags=[IdentityTag.STUDENT],
+    )
+    await student.insert()
+
+    app = FastAPI()
+    app.include_router(prizes_router)
+    return app, student
+
+
+async def test_student_list_prizes_returns_200(prizes_app):
+    """Student calling list_prizes must return 200 and see only visible prizes.
+
+    Bug (R7): user.role raises AttributeError — User uses identity_tags, not role.
+    """
+    from core.auth.jwt import create_access_token
+    from core.auth.permissions import STUDENT
+    from gamification.prizes.models import Prize
+
+    app, student = prizes_app
+    await Prize(class_id="cls1", title="Visible", visible=True, point_cost=10, created_by=str(student.id)).insert()
+    await Prize(class_id="cls1", title="Hidden", visible=False, point_cost=20, created_by=str(student.id)).insert()
+
+    token = create_access_token(user_id=str(student.id), permissions=int(STUDENT))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        ac.cookies.set("access_token", token)
+        resp = await ac.get("/classes/cls1/prizes")
+    assert resp.status_code == 200
+    titles = [p["title"] for p in resp.json()]
+    assert titles == ["Visible"]

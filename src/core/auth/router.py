@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from core.auth.deps import get_current_user
 from core.auth.jwt import create_access_token
-from core.auth.password import hash_password, verify_password
+from core.auth.password import hash_password, validate_password_strength, verify_password
 from core.users.models import User
 from extensions.registry import registry
 from extensions.protocols import AuthProvider
@@ -98,6 +98,10 @@ async def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
         )
+    try:
+        validate_password_strength(body.new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     current_user.hashed_password = hash_password(body.new_password)
     await current_user.save()

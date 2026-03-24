@@ -1,4 +1,6 @@
 """Setup wizard router and system config admin API."""
+import logging
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
@@ -10,6 +12,8 @@ from core.system.models import SystemConfig
 from core.users.models import User
 from shared.redis import SETUP_FLAG_KEY
 from shared.webpage import webpage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["setup"])
 
@@ -105,7 +109,8 @@ async def post_setup(
         webpage.webpage_context_update({"site_name": site_name})
 
     except Exception as e:
-        error_url = request.url_for("setup_page").include_query_params(error=str(e))
+        logger.exception(e)
+        error_url = request.url_for("setup_page").include_query_params(error="An internal error occurred.")
         return (str(error_url), 302)
 
     return "/"

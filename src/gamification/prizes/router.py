@@ -9,7 +9,7 @@ from core.auth.guards import require_permission
 from core.auth.permissions import MANAGE_TASKS
 from core.classes.models import Class
 from core.classes.service import can_manage_class
-from core.users.models import User
+from core.users.models import IdentityTag, User
 from gamification.prizes.models import Prize
 
 router = APIRouter(tags=["prizes"])
@@ -62,7 +62,7 @@ async def list_prizes(
     class_id: str,
     user: User = Depends(get_current_user),
 ):
-    if user.role == "student":
+    if IdentityTag.STUDENT in user.identity_tags:
         prizes = await Prize.find(Prize.class_id == class_id, Prize.visible == True).to_list()  # noqa: E712
     else:
         prizes = await Prize.find(Prize.class_id == class_id).to_list()

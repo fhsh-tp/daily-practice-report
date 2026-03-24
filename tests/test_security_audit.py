@@ -436,3 +436,16 @@ def test_jwt_no_warning_if_custom_secret(caplog):
         assert caplog.records == []
     finally:
         jwt_module._SECRET = original
+
+
+# ─── 7.1 Dockerfile: FORWARDED_ALLOW_IPS must not be * ───────────────────────
+
+def test_dockerfile_forwarded_allow_ips_not_wildcard():
+    """Dockerfile must not set FORWARDED_ALLOW_IPS=* (CWE-16: IP spoofing via trusting all proxies)."""
+    import pathlib
+    dockerfile = pathlib.Path(__file__).parent.parent / "Dockerfile"
+    content = dockerfile.read_text()
+    assert "FORWARDED_ALLOW_IPS=*" not in content, (
+        "Dockerfile sets FORWARDED_ALLOW_IPS=* which trusts ALL proxies and enables "
+        "IP spoofing. Change to FORWARDED_ALLOW_IPS=\"\" so the default is no trusted proxies."
+    )
