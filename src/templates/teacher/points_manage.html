@@ -33,6 +33,26 @@
   </form>
 </div>
 
+{# ── Attendance management shortcut (Teacher accesses attendance management from points manage page) #}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6 flex items-center justify-between gap-4">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+      </svg>
+    </div>
+    <div>
+      <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm">出席管理</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">查看每日簽到狀態，標記遲到或撤銷已到</p>
+    </div>
+  </div>
+  <a href="{{ url_for('attendance_manage_page', class_id=class_id) }}"
+     class="shrink-0 inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors duration-150 cursor-pointer">
+    前往管理
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+  </a>
+</div>
+
 {# ── Student balance table ───────────────────────────────────────────────── #}
 <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
   <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
@@ -67,9 +87,8 @@
             </span>
           </td>
           <td class="px-5 py-3.5">
-            <form method="post"
-                  action="{{ url_for('revoke_student_points', class_id=class_id, student_id=m.student_id) }}"
-                  class="flex items-center gap-2 flex-wrap">
+            <form class="revoke-form flex items-center gap-2 flex-wrap"
+                  data-url="{{ url_for('revoke_student_points', class_id=class_id, student_id=m.student_id) }}">
               <input type="number" name="amount" placeholder="積分" min="1" max="{{ m.balance }}" required
                      class="w-20 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-shadow duration-150">
               <input type="text" name="reason" placeholder="原因" required
@@ -91,4 +110,36 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.revoke-form').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const url = form.dataset.url;
+    const amount = parseInt(form.querySelector('[name="amount"]').value, 10);
+    const reason = form.querySelector('[name="reason"]').value;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, reason }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        alert('追回失敗：' + (err.detail || resp.status));
+        return;
+      }
+      location.reload();
+    } catch (err) {
+      alert('網路錯誤：' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
 {% endblock %}

@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 
 from core.users.models import User
 from pages.deps import get_page_user
+from shared.page_context import build_page_context, get_page_context
 from shared.webpage import webpage
 
 router = APIRouter(prefix="/pages", tags=["pages"])
@@ -60,6 +61,7 @@ async def login_form(
 async def dashboard_page(
     request: Request,
     current_user: User = Depends(get_page_user),
+    create_class: int = 0,
 ):
     from datetime import date, datetime, timezone
 
@@ -75,8 +77,7 @@ async def dashboard_page(
     now = datetime.now(timezone.utc)
     today = date.today()
 
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
-    can_manage_class = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+    page_ctx = await build_page_context(current_user)
 
     classes = []
     for m in memberships:
@@ -84,7 +85,7 @@ async def dashboard_page(
         if cls is None:
             continue
         # Students don't see archived classes; managers/teachers do
-        if cls.is_archived and not can_manage_class:
+        if cls.is_archived and not page_ctx["can_manage_class"]:
             continue
 
         checkin_result = await is_checkin_open(m.class_id, now)
@@ -105,6 +106,23 @@ async def dashboard_page(
         except Exception:
             owner_display_name = ""
 
+        # Today's submission status for this student in this class
+        submitted_today = False
+        submission_status = None
+        submission_id = None
+        if today_template:
+            from tasks.submissions.models import TaskSubmission
+            sub = await TaskSubmission.find_one(
+                TaskSubmission.template_id == str(today_template.id),
+                TaskSubmission.student_id == str(current_user.id),
+                TaskSubmission.class_id == m.class_id,
+                TaskSubmission.status != "rejected",
+            )
+            if sub:
+                submitted_today = True
+                submission_status = sub.status
+                submission_id = str(sub.id)
+
         classes.append({
             "class_id": m.class_id,
             "class_name": cls.name,
@@ -117,6 +135,9 @@ async def dashboard_page(
             "reason": checkin_result.reason,
             "today_template": today_template,
             "member_count": member_count,
+            "submitted_today": submitted_today,
+            "submission_status": submission_status,
+            "submission_id": submission_id,
         })
 
     from gamification.badges.models import BadgeAward
@@ -152,7 +173,7 @@ async def dashboard_page(
     recent_activities = activities[:20]
 
     return {
-        "current_user": current_user,
+        **page_ctx,
         "classes": classes,
         "stats": {
             "total_points": total_points,
@@ -162,11 +183,7 @@ async def dashboard_page(
         },
         "badges": badges,
         "recent_activities": recent_activities,
-        "can_manage_class": can_manage_class,
-        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
-        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
-        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
-        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "open_create_class_modal": bool(create_class),
     }
 
 
@@ -206,19 +223,9 @@ def _compute_initial_levels(permissions: int, schema: list) -> dict:
     return levels
 
 
-def _admin_context(current_user: User) -> dict:
+async def _admin_context(current_user: User) -> dict:
     """Common context injected into every admin page."""
-    from core.auth.permissions import MANAGE_USERS, WRITE_SYSTEM, MANAGE_ALL_CLASSES
-    can_manage_all = bool(current_user.permissions & MANAGE_ALL_CLASSES)
-    return {
-        "current_user": current_user,
-        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
-        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
-        "can_manage_class": can_manage_all,
-        "can_manage_all_classes": can_manage_all,
-        "can_manage_tasks": False,
-        "classes": [],
-    }
+    return await build_page_context(current_user)
 
 
 async def _require_admin(current_user: User = Depends(get_page_user)) -> User:
@@ -260,7 +267,9 @@ async def teacher_class_hub(
     from core.classes.models import Class, ClassMembership
     from core.classes.service import can_manage_class
     from tasks.checkin.service import is_checkin_open
-    from datetime import datetime, timezone
+    from tasks.checkin.models import CheckinRecord
+    from tasks.submissions.models import TaskSubmission
+    from datetime import datetime, timezone, date, timedelta
 
     cls = await Class.get(class_id)
     if cls is None:
@@ -273,32 +282,45 @@ async def teacher_class_hub(
     now = datetime.now(timezone.utc)
     checkin_result = await is_checkin_open(class_id, now)
 
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
-    can_manage = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
+    # Today's checkin count
+    today = date.today()
+    today_checkin_count = await CheckinRecord.find(
+        CheckinRecord.class_id == class_id,
+        CheckinRecord.checkin_date == today,
+    ).count()
 
-    # Build classes list for sidebar (teacher's managed classes)
-    memberships = await ClassMembership.find(
-        ClassMembership.user_id == str(current_user.id)
-    ).to_list()
-    sidebar_classes = []
-    for m in memberships:
-        c = await Class.get(m.class_id)
-        if c and not c.is_archived:
-            sidebar_classes.append({"class_id": m.class_id, "class_name": c.name})
+    # Pending submission count
+    pending_submission_count = await TaskSubmission.find(
+        TaskSubmission.class_id == class_id,
+        TaskSubmission.status == "pending",
+    ).count()
+
+    # Weekly submission rate
+    week_start = today - timedelta(days=today.weekday())  # Monday
+    week_submissions = await TaskSubmission.find(
+        TaskSubmission.class_id == class_id,
+        TaskSubmission.date >= week_start,
+        TaskSubmission.date <= today,
+    ).count()
+    if member_count > 0:
+        weekly_submission_rate = min(round(week_submissions / (member_count * 7) * 100, 1), 100)
+    else:
+        weekly_submission_rate = 0
+
+    page_ctx = await build_page_context(current_user)
 
     return {
-        "current_user": current_user,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "member_count": member_count,
         "checkin_open": checkin_result.is_open,
         "is_archived": cls.is_archived,
-        "classes": sidebar_classes,
-        "can_manage_class": can_manage,
-        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
-        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
-        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
-        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        "discord_webhook_url": cls.discord_webhook_url or "",
+        "invite_code": cls.invite_code,
+        "today_checkin_count": today_checkin_count,
+        "pending_submission_count": pending_submission_count,
+        "weekly_submission_rate": weekly_submission_rate,
     }
 
 
@@ -308,10 +330,16 @@ async def admin_overview(
     request: Request,
     current_user: User = Depends(_require_admin),
 ):
+    from core.classes.models import Class
+
     total = await User.count()
+    active_class_count = await Class.find(Class.is_archived == False).count()  # noqa: E712
+    archived_class_count = await Class.find(Class.is_archived == True).count()  # noqa: E712
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "user_count": total,
+        "active_class_count": active_class_count,
+        "archived_class_count": archived_class_count,
         "admin_section": "overview",
         "success": request.query_params.get("success"),
         "error": request.query_params.get("error"),
@@ -331,7 +359,7 @@ async def admin_users_list(
     total = await User.count()
     users = await User.find_all().skip(skip).limit(page_size).to_list()
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "users": [
             {
                 "id": str(u.id),
@@ -363,7 +391,7 @@ async def admin_user_new(
     from core.auth.permissions import ROLE_PRESETS
     schema = _build_schema()
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "edit_user": None,
         "initial_levels": {e["domain"]: "none" for e in schema},
         "schema": schema,
@@ -436,7 +464,7 @@ async def admin_user_edit(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     schema = _build_schema()
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "edit_user": {
             "id": str(user.id),
             "username": user.username,
@@ -509,25 +537,9 @@ async def settings_page(
     request: Request,
     current_user: User = Depends(get_page_user),
 ):
-    from core.auth.permissions import MANAGE_OWN_CLASS, MANAGE_ALL_CLASSES, MANAGE_TASKS, MANAGE_USERS, WRITE_SYSTEM
-    from core.classes.models import Class, ClassMembership
-    memberships = await ClassMembership.find(
-        ClassMembership.user_id == str(current_user.id)
-    ).to_list()
-    classes = []
-    can_manage_class = bool(current_user.permissions & (MANAGE_OWN_CLASS | MANAGE_ALL_CLASSES))
-    for m in memberships:
-        c = await Class.get(m.class_id)
-        if c and not c.is_archived:
-            classes.append({"class_id": m.class_id, "class_name": c.name})
+    page_ctx = await build_page_context(current_user)
     return {
-        "current_user": current_user,
-        "classes": classes,
-        "can_manage_class": can_manage_class,
-        "can_manage_all_classes": bool(current_user.permissions & MANAGE_ALL_CLASSES),
-        "can_manage_tasks": bool(current_user.permissions & MANAGE_TASKS),
-        "can_manage_users": bool(current_user.permissions & MANAGE_USERS),
-        "is_sys_admin": bool(current_user.permissions & WRITE_SYSTEM),
+        **page_ctx,
         "success": request.query_params.get("success"),
         "error": request.query_params.get("error"),
     }
@@ -592,7 +604,7 @@ async def admin_classes_list(
         })
 
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "class_list": classes,
         "admin_section": "classes",
         "success": request.query_params.get("success"),
@@ -608,7 +620,7 @@ async def admin_system_settings(
 ):
     config = getattr(request.app.state, "system_config", None)
     return {
-        **_admin_context(current_user),
+        **(await _admin_context(current_user)),
         "config": config,
         "admin_section": "system",
         "success": request.query_params.get("success"),

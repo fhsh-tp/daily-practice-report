@@ -220,8 +220,10 @@ async def test_submit_task_raises_when_limit_reached(db, template):
     from core.users.models import User
     from core.auth.password import hash_password
 
+    from core.classes.models import ClassMembership
     student = User(username="limit_stu", hashed_password=hash_password("pw"), display_name="S")
     await student.insert()
+    await ClassMembership(class_id="cls_sched", user_id=str(student.id), role="student").insert()
 
     rule = TaskScheduleRule(
         template_id=str(template.id),
@@ -249,8 +251,10 @@ async def test_submit_task_no_limit_when_max_is_zero(db, template):
     from core.users.models import User
     from core.auth.password import hash_password
 
+    from core.classes.models import ClassMembership
     student = User(username="nolimit_stu", hashed_password=hash_password("pw"), display_name="S2")
     await student.insert()
+    await ClassMembership(class_id="cls_sched", user_id=str(student.id), role="student").insert()
 
     rule = TaskScheduleRule(
         template_id=str(template.id),

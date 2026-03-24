@@ -10,10 +10,11 @@ async def db():
     client = AsyncMongoMockClient()
     database = client.get_database("test_checkin")
     from core.users.models import User
+    from core.classes.models import ClassMembership
     from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord
     await init_beanie(
         database=database,
-        document_models=[User, CheckinConfig, DailyCheckinOverride, CheckinRecord],
+        document_models=[User, ClassMembership, CheckinConfig, DailyCheckinOverride, CheckinRecord],
     )
     yield database
     client.close()
@@ -22,9 +23,11 @@ async def db():
 @pytest.fixture
 async def student(db):
     from core.users.models import User
+    from core.classes.models import ClassMembership
     from core.auth.password import hash_password
     u = User(username="stu", hashed_password=hash_password("pw"), display_name="S", role="student")
     await u.insert()
+    await ClassMembership(class_id="cls1", user_id=str(u.id), role="student").insert()
     return u
 
 

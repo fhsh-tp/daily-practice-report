@@ -717,3 +717,40 @@ A teacher SHALL be able to restore an archived template to active status via an 
 source: ui-polish-and-fixes
 updated: 2026-03-19
 -->
+
+---
+### Requirement: Task assignment form includes Discord sync option
+
+The task assignment form SHALL include a checkbox "同步到 Discord" that is visible only when the class has a configured Webhook URL.
+
+#### Scenario: Sync checkbox shown when webhook is configured
+
+- **WHEN** a teacher opens the task assignment form for a class with a Webhook URL
+- **THEN** the "同步到 Discord" checkbox SHALL be visible
+
+#### Scenario: Sync checkbox hidden when no webhook
+
+- **WHEN** a teacher opens the task assignment form for a class without a Webhook URL
+- **THEN** the "同步到 Discord" checkbox SHALL NOT be displayed
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+-->
+
+<!-- @trace
+source: discord-integration
+updated: 2026-03-21
+code:
+  - src/integrations/discord/service.py
+  - src/tasks/templates/router.py
+  - src/core/classes/router.py
+  - src/templates/teacher/class_hub.html
+  - src/integrations/__init__.py
+  - src/templates/teacher/template_assign.html
+  - src/core/classes/models.py
+  - src/pages/router.py
+  - src/integrations/discord/__init__.py
+tests:
+  - tests/test_discord_integration.py
+-->

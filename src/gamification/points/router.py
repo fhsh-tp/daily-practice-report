@@ -14,6 +14,7 @@ from gamification.points.service import (
     get_transaction_history,
     revoke_points,
 )
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 
 router = APIRouter(tags=["points"])
@@ -150,8 +151,9 @@ async def points_manage_page(
     config = await ClassPointConfig.find_one(ClassPointConfig.class_id == class_id)
     config_data = config or ClassPointConfig(class_id=class_id)
 
+    page_ctx = await build_page_context(teacher)
     return {
-        "current_user": teacher,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "members": members_data,

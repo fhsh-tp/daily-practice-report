@@ -7,6 +7,7 @@ from core.classes.models import Class, ClassMembership
 from core.users.models import User
 from gamification.points.service import get_balance
 from pages.deps import get_page_user
+from shared.page_context import build_page_context
 from shared.webpage import webpage
 
 router = APIRouter(tags=["leaderboard"])
@@ -102,8 +103,9 @@ async def leaderboard_page(
         count = await BadgeAward.find(BadgeAward.student_id == entry["student_id"]).count()
         entry["badge_count"] = count
 
+    page_ctx = await build_page_context(user)
     return {
-        "current_user": user,
+        **page_ctx,
         "class_id": class_id,
         "class_name": cls.name,
         "visible": visible,

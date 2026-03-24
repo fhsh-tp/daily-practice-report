@@ -15,7 +15,7 @@ def _collect_document_models():
     from core.classes.models import Class, ClassMembership
     from tasks.templates.models import TaskTemplate, TaskAssignment, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
-    from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord
+    from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord, AttendanceCorrection
     from gamification.points.models import PointTransaction, ClassPointConfig
     from gamification.badges.models import BadgeDefinition, BadgeAward
     from community.feed.models import FeedPost, Reaction
@@ -24,7 +24,7 @@ def _collect_document_models():
     return [
         User, Class, ClassMembership,
         TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
-        CheckinConfig, DailyCheckinOverride, CheckinRecord,
+        CheckinConfig, DailyCheckinOverride, CheckinRecord, AttendanceCorrection,
         PointTransaction, ClassPointConfig,
         BadgeDefinition, BadgeAward,
         FeedPost, Reaction,
