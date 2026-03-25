@@ -58,121 +58,43 @@ tests:
 ---
 ### Requirement: Student joins a class
 
-Students SHALL be able to join a class using a class invite code or by browsing public classes. A student MUST be able to join multiple classes simultaneously.
+Students SHALL be able to join a class using a class invite code or by browsing public classes. A student MUST be able to join multiple classes simultaneously. When joining via invite code, the system SHALL create a `JoinRequest` with status `pending` instead of directly creating a `ClassMembership`. The student SHALL be informed that their request is pending teacher review. Joining a public class SHALL continue to add the student as a member directly without requiring review.
 
-#### Scenario: Student joins via invite code
+#### Scenario: Student submits invite code to request joining
 
 - **WHEN** a student submits a valid invite code
-- **THEN** the system SHALL add the student as a member of that class
+- **THEN** the system SHALL create a `JoinRequest` with status `pending` for the corresponding class and return a message indicating the request is awaiting teacher review
 
 #### Scenario: Student joins a public class
 
 - **WHEN** a student selects a public class from the class browser
-- **THEN** the system SHALL add the student as a member
+- **THEN** the system SHALL add the student as a member directly (no review required)
 
 #### Scenario: Student already a member
 
 - **WHEN** a student attempts to join a class they already belong to
-- **THEN** the system SHALL return an informational message and SHALL NOT create a duplicate membership
+- **THEN** the system SHALL return an informational message and SHALL NOT create a duplicate membership or join request
 
 
 <!-- @trace
-source: daily-training-submission-system
-updated: 2026-03-18
+source: invite-code-join-review
+updated: 2026-03-25
 code:
-  - src/gamification/__init__.py
+  - scripts/migrations/20260325_004_join_request_index.py
+  - src/main.py
+  - src/shared/page_context.py
+  - uv.lock
+  - src/pages/router.py
+  - src/templates/teacher/class_members.html
   - src/core/classes/router.py
   - src/core/classes/service.py
-  - scripts/__init__.py
-  - src/extensions/protocols/reward.py
-  - src/extensions/registry/__init__.py
-  - src/extensions/protocols/__init__.py
-  - src/tasks/checkin/router.py
-  - src/templates/teacher/templates_list.html
-  - LICENSE
-  - uv.lock
-  - src/core/users/__init__.py
-  - src/gamification/points/service.py
-  - src/templates/community/leaderboard.html
-  - src/templates/shared/base.html
-  - src/templates/teacher/template_form.html
-  - src/core/auth/__init__.py
-  - src/tasks/templates/models.py
-  - src/templates/teacher/points_manage.html
-  - src/templates/community/feed.html
-  - src/community/feed/router.py
-  - src/extensions/protocols/validator.py
-  - src/shared/database.py
-  - src/core/classes/__init__.py
-  - src/tasks/checkin/service.py
-  - src/tasks/templates/service.py
-  - src/gamification/badges/__init__.py
-  - src/gamification/points/models.py
-  - src/tasks/checkin/__init__.py
-  - src/community/feed/__init__.py
-  - src/gamification/prizes/__init__.py
-  - src/core/auth/deps.py
-  - src/core/auth/jwt.py
-  - src/extensions/deps.py
-  - docker-compose.yml
-  - src/community/__init__.py
-  - src/core/auth/local_provider.py
-  - src/core/classes/models.py
-  - src/gamification/badges/router.py
-  - src/gamification/leaderboard/router.py
-  - scripts/migrations/__init__.py
-  - src/gamification/points/router.py
-  - src/main.py
-  - src/extensions/registry/core.py
-  - src/shared/__init__.py
-  - src/tasks/checkin/models.py
-  - src/core/users/router.py
-  - pytest.ini
-  - scripts/migrations/20260317_001_initial_indexes.py
-  - src/tasks/submissions/__init__.py
-  - src/community/feed/models.py
-  - src/core/users/models.py
-  - src/gamification/leaderboard/__init__.py
-  - src/templates/student/badges.html
-  - src/tasks/templates/router.py
-  - src/gamification/points/providers.py
   - src/templates/student/dashboard.html
-  - src/extensions/protocols/badge.py
-  - src/tasks/templates/__init__.py
-  - src/core/auth/password.py
-  - src/extensions/__init__.py
-  - src/gamification/points/__init__.py
-  - pyproject.toml
-  - src/extensions/protocols/auth.py
-  - src/tasks/__init__.py
-  - src/gamification/prizes/models.py
-  - src/tasks/submissions/router.py
-  - src/gamification/badges/service.py
-  - src/tasks/submissions/models.py
-  - src/gamification/prizes/router.py
-  - src/templates/student/submit_task.html
-  - scripts/migrate.py
-  - src/core/__init__.py
-  - src/gamification/badges/models.py
-  - src/core/auth/router.py
-  - src/tasks/submissions/service.py
-  - src/gamification/badges/triggers.py
+  - src/core/classes/models.py
+  - src/core/system/router.py
+  - src/core/system/models.py
+  - src/templates/admin/system_settings.html
 tests:
-  - tests/test_checkin.py
-  - tests/test_database.py
-  - tests/test_extensions.py
-  - tests/test_points.py
-  - tests/test_task_templates.py
-  - tests/test_classes.py
-  - tests/test_submissions.py
-  - tests/test_leaderboard.py
-  - tests/test_feed.py
-  - tests/test_prizes.py
-  - tests/test_migration.py
-  - tests/test_module_structure.py
-  - tests/test_auth.py
-  - tests/test_badges.py
-  - scripts/migrations/test_example_migration.py
+  - tests/test_join_requests.py
 -->
 
 ---
@@ -508,4 +430,46 @@ code:
   - src/integrations/discord/__init__.py
 tests:
   - tests/test_discord_integration.py
+-->
+
+---
+### Requirement: Class model includes Discord template embedded field
+
+The Class model SHALL include an optional field `discord_template` (embedded document, nullable, default `None`) with sub-fields `title_format` (string), `description_template` (string), and `footer_text` (string). This field SHALL be stored as an embedded document within the class record, not as a separate collection.
+
+#### Scenario: Existing classes are unaffected
+
+- **WHEN** the system reads a class document that was created before the `discord_template` field existed
+- **THEN** the `discord_template` field SHALL resolve to `None` and the system SHALL operate using system default template values
+
+#### Scenario: discord_template field is not exposed to students
+
+- **WHEN** a student views class information
+- **THEN** the `discord_template` field SHALL NOT be included in any student-facing API response or template
+
+<!-- @trace
+source: dc-template-msg-editor
+updated: 2026-03-25
+code:
+  - src/core/system/models.py
+  - src/templates/teacher/template_assign.html
+  - src/templates/teacher/class_hub.html
+  - src/core/classes/service.py
+  - src/integrations/discord/service.py
+  - uv.lock
+  - src/core/classes/models.py
+  - src/pages/router.py
+  - src/templates/teacher/class_members.html
+  - scripts/migrations/20260325_004_join_request_index.py
+  - src/core/system/router.py
+  - src/tasks/templates/router.py
+  - src/shared/page_context.py
+  - src/templates/admin/system_settings.html
+  - src/main.py
+  - src/templates/student/dashboard.html
+  - src/core/classes/router.py
+tests:
+  - tests/test_dc_template.py
+  - tests/test_discord_integration.py
+  - tests/test_join_requests.py
 -->

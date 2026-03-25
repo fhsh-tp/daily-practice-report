@@ -15,7 +15,7 @@ from shared.webpage import webpage
 
 def _collect_document_models():
     from core.users.models import User
-    from core.classes.models import Class, ClassMembership
+    from core.classes.models import Class, ClassMembership, JoinRequest
     from tasks.templates.models import TaskTemplate, TaskAssignment, TaskScheduleRule
     from tasks.submissions.models import TaskSubmission
     from tasks.checkin.models import CheckinConfig, DailyCheckinOverride, CheckinRecord, AttendanceCorrection
@@ -25,7 +25,7 @@ def _collect_document_models():
     from gamification.prizes.models import Prize
     from core.system.models import SystemConfig
     return [
-        User, Class, ClassMembership,
+        User, Class, ClassMembership, JoinRequest,
         TaskTemplate, TaskAssignment, TaskScheduleRule, TaskSubmission,
         CheckinConfig, DailyCheckinOverride, CheckinRecord, AttendanceCorrection,
         PointTransaction, ClassPointConfig,

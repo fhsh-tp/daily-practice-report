@@ -29,6 +29,17 @@
   </div>
 </div>
 
+{# ── Pending Review Section ──────────────────────────────────────────────── #}
+<div id="pending-review" class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-6">
+  <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
+    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">待審核申請</h2>
+    <span id="pending-count" class="hidden text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 px-2 py-0.5 rounded-full font-medium"></span>
+  </div>
+  <div id="pending-list" class="divide-y divide-gray-100 dark:divide-gray-800">
+    <p class="px-5 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">載入中…</p>
+  </div>
+</div>
+
 {# Two-column layout: Batch Invite + Current Members #}
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 <div class="lg:col-span-2">
@@ -198,6 +209,67 @@ function showToast(msg, success) {
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 3000);
 }
+
+/* ── Pending join requests ──────────────────────────────────── */
+async function loadPendingRequests() {
+  const container = document.getElementById('pending-list');
+  const countBadge = document.getElementById('pending-count');
+  try {
+    const resp = await fetch(`/classes/${CLASS_ID}/join-requests`);
+    if (!resp.ok) { container.innerHTML = '<p class="px-5 py-6 text-sm text-red-400 text-center">載入失敗</p>'; return; }
+    const requests = await resp.json();
+    if (requests.length === 0) {
+      container.innerHTML = '<p class="px-5 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">目前沒有待審核的加入申請</p>';
+      countBadge.classList.add('hidden');
+      return;
+    }
+    countBadge.textContent = requests.length;
+    countBadge.classList.remove('hidden');
+    container.innerHTML = requests.map(r => `
+      <div class="flex items-center justify-between px-5 py-3" id="jr-${r.id}">
+        <div class="flex-1 min-w-0">
+          <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${escHtml(r.student_name)}</span>
+          ${r.student_real_name ? `<span class="text-xs text-gray-500 ml-2">(${escHtml(r.student_real_name)})</span>` : ''}
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            申請時間：${new Date(r.requested_at).toLocaleString('zh-TW')} · 邀請碼：<code class="text-xs">${escHtml(r.invite_code_used)}</code>
+          </div>
+        </div>
+        <div class="flex gap-2 shrink-0 ml-4">
+          <button onclick="reviewRequest('${r.id}', 'approve')"
+                  class="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors cursor-pointer">核准</button>
+          <button onclick="reviewRequest('${r.id}', 'reject')"
+                  class="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer">拒絕</button>
+        </div>
+      </div>
+    `).join('');
+  } catch {
+    container.innerHTML = '<p class="px-5 py-6 text-sm text-red-400 text-center">載入失敗</p>';
+  }
+}
+
+async function reviewRequest(requestId, action) {
+  const actionLabel = action === 'approve' ? '核准' : '拒絕';
+  Modal.confirm(`確定要${actionLabel}此申請嗎？`, async function () {
+    const resp = await fetch(`/classes/${CLASS_ID}/join-requests/${requestId}/review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    if (resp.ok) {
+      const row = document.getElementById(`jr-${requestId}`);
+      if (row) row.remove();
+      if (action === 'approve') {
+        setTimeout(() => location.reload(), 800);
+      } else {
+        loadPendingRequests();
+      }
+    } else {
+      Modal.alert(`${actionLabel}失敗，請稍後再試`);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadPendingRequests);
 
 async function removeMember(userId, displayName) {
   Modal.confirm(`確定要移除「${displayName}」嗎？`, async function () {
