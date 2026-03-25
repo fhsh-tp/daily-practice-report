@@ -30,9 +30,7 @@ services:
     ports:
       - "127.0.0.1:27017:27017"
     healthcheck:
-      test: >
-        CMD bash -c 'mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD"
-        --authenticationDatabase admin --eval "db.adminCommand('"'"'ping'"'"')"'
+      test: ["CMD", "mongosh", "-u", "${MONGO_ROOT_USERNAME:-admin}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')", "--quiet"]
       interval: 10s
       timeout: 5s
       retries: 5
