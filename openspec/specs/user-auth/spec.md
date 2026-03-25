@@ -933,7 +933,137 @@ code:
 tests:
   - tests/test_pages.py
 -->
+
+---
+### Requirement: Auth cookies use Secure flag in production
+
+The system SHALL set `secure=True` on the `access_token` cookie when `FASTAPI_APP_ENVIRONMENT` is set to `production`. This applies to both the API login endpoint (`POST /auth/login`) and the form login endpoint (`POST /pages/login`). In non-production environments, the `secure` flag MAY be omitted to allow HTTP-based local development.
+
+#### Scenario: Production login sets Secure cookie
+
+- **WHEN** a user successfully authenticates via `POST /auth/login` or `POST /pages/login` in a production environment
+- **THEN** the `access_token` cookie SHALL include the `Secure` attribute
+
+#### Scenario: Non-production login omits Secure flag
+
+- **WHEN** a user successfully authenticates in a non-production environment
+- **THEN** the `access_token` cookie MAY omit the `Secure` attribute
+
+
+<!-- @trace
+source: security-hardening
+updated: 2026-03-25
+code:
+  - src/shared/sessions.py
+  - src/shared/limiter.py
+  - docker-compose.yml
+  - uv.lock
+  - src/core/system/router.py
+  - src/core/auth/router.py
+  - src/shared/csrf.py
+  - pyproject.toml
+  - src/core/auth/jwt.py
+  - src/main.py
+  - src/pages/router.py
+tests:
+  - tests/test_csrf.py
+  - tests/test_setup_startup.py
+  - tests/test_identity_tags.py
+  - tests/test_security_audit.py
+  - tests/test_rate_limiting.py
+  - tests/test_secure_cookie.py
+  - tests/test_sessions.py
+-->
+
+---
+### Requirement: Rate limiting on authentication endpoints
+
+The system SHALL enforce rate limiting on authentication-related endpoints to prevent brute-force attacks. The following endpoints SHALL be rate-limited:
+- `POST /auth/login`
+- `POST /pages/login`
+- `POST /auth/change-password`
+- `POST /setup`
+
+When the rate limit is exceeded, the system SHALL return HTTP 429 (Too Many Requests).
+
+#### Scenario: Login rate limit exceeded
+
+- **WHEN** a client exceeds the rate limit on `POST /auth/login` or `POST /pages/login`
+- **THEN** the system SHALL return HTTP 429 and SHALL NOT attempt authentication
+
+#### Scenario: Requests within rate limit proceed normally
+
+- **WHEN** a client submits login requests within the allowed rate
+- **THEN** the system SHALL process authentication normally
+
+
+<!-- @trace
+source: security-hardening
+updated: 2026-03-25
+code:
+  - src/shared/sessions.py
+  - src/shared/limiter.py
+  - docker-compose.yml
+  - uv.lock
+  - src/core/system/router.py
+  - src/core/auth/router.py
+  - src/shared/csrf.py
+  - pyproject.toml
+  - src/core/auth/jwt.py
+  - src/main.py
+  - src/pages/router.py
+tests:
+  - tests/test_csrf.py
+  - tests/test_setup_startup.py
+  - tests/test_identity_tags.py
+  - tests/test_security_audit.py
+  - tests/test_rate_limiting.py
+  - tests/test_secure_cookie.py
+  - tests/test_sessions.py
+-->
+
+---
+### Requirement: CSRF protection on form POST endpoints
+
+The system SHALL validate the `Origin` or `Referer` header on form-based POST requests to prevent cross-site request forgery. If the header is present and does not match the application's expected origin, the system SHALL reject the request with HTTP 403.
+
+#### Scenario: Form POST with matching Origin accepted
+
+- **WHEN** a form POST request includes an `Origin` header matching the application host
+- **THEN** the system SHALL process the request normally
+
+#### Scenario: Form POST with mismatched Origin rejected
+
+- **WHEN** a form POST request includes an `Origin` header that does not match the application host
+- **THEN** the system SHALL return HTTP 403 and SHALL NOT process the form submission
+
 ## ADDED Requirements
+
+
+<!-- @trace
+source: security-hardening
+updated: 2026-03-25
+code:
+  - src/shared/sessions.py
+  - src/shared/limiter.py
+  - docker-compose.yml
+  - uv.lock
+  - src/core/system/router.py
+  - src/core/auth/router.py
+  - src/shared/csrf.py
+  - pyproject.toml
+  - src/core/auth/jwt.py
+  - src/main.py
+  - src/pages/router.py
+tests:
+  - tests/test_csrf.py
+  - tests/test_setup_startup.py
+  - tests/test_identity_tags.py
+  - tests/test_security_audit.py
+  - tests/test_rate_limiting.py
+  - tests/test_secure_cookie.py
+  - tests/test_sessions.py
+-->
 
 ### Requirement: JWT secret safety check at startup
 
@@ -956,4 +1086,29 @@ code:
   - src/core/auth/jwt.py
 tests:
   - tests/test_security_audit.py
+-->
+
+<!-- @trace
+source: security-hardening
+updated: 2026-03-25
+code:
+  - src/shared/sessions.py
+  - src/shared/limiter.py
+  - docker-compose.yml
+  - uv.lock
+  - src/core/system/router.py
+  - src/core/auth/router.py
+  - src/shared/csrf.py
+  - pyproject.toml
+  - src/core/auth/jwt.py
+  - src/main.py
+  - src/pages/router.py
+tests:
+  - tests/test_csrf.py
+  - tests/test_setup_startup.py
+  - tests/test_identity_tags.py
+  - tests/test_security_audit.py
+  - tests/test_rate_limiting.py
+  - tests/test_secure_cookie.py
+  - tests/test_sessions.py
 -->
