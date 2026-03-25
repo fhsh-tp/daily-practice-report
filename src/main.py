@@ -3,8 +3,11 @@ import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from shared import SessionMiddleware, init_db
+from shared.limiter import limiter
 from shared.database import get_motor_client
 from shared.redis import get_redis_client
 from shared.webpage import webpage
@@ -47,7 +50,11 @@ def _register_extensions():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from core.auth.jwt import check_secret_safety
     from core.system.startup import init_redis_state, check_setup_state
+
+    # JWT secret safety check — raises RuntimeError in production with default secret
+    check_secret_safety()
 
     # MongoDB
     client = get_motor_client()
@@ -78,8 +85,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Rate limiter — shared instance used by @limiter.limit decorators
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+from shared.csrf import CSRFMiddleware
+
 SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+app.add_middleware(CSRFMiddleware)
 
 
 from starlette.middleware.base import BaseHTTPMiddleware

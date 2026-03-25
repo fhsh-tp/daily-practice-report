@@ -1,9 +1,12 @@
 """Pages router — login, logout redirect, dashboard, and admin panel."""
+import os
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from core.users.models import User
 from pages.deps import get_page_user
+from shared.limiter import limiter
 from shared.page_context import build_page_context, get_page_context
 from shared.webpage import webpage
 
@@ -13,6 +16,15 @@ _COOKIE_NAME = "access_token"
 _COOKIE_MAX_AGE = 60 * 60 * 24  # 24h
 
 
+def _is_production() -> bool:
+    """Return True only when FASTAPI_APP_ENVIRONMENT is explicitly 'production'.
+
+    Read at call time (not module load time) so tests can monkeypatch os.environ.
+    Defaults to False to avoid breaking HTTP localhost development.
+    """
+    return os.getenv("FASTAPI_APP_ENVIRONMENT", "development") == "production"
+
+
 @router.get("/login", name="login_page")
 @webpage.page("login.html")
 async def login_page(request: Request, error: str | None = None, next: str | None = None):
@@ -20,6 +32,7 @@ async def login_page(request: Request, error: str | None = None, next: str | Non
 
 
 @router.post("/login")
+@limiter.limit("10/minute")
 @webpage.redirect(status_code=302)
 async def login_form(
     request: Request,
@@ -52,6 +65,7 @@ async def login_form(
         httponly=True,
         samesite="lax",
         max_age=_COOKIE_MAX_AGE,
+        secure=_is_production(),
     )
     return response
 

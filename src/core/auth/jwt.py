@@ -14,8 +14,18 @@ _logger = logging.getLogger(__name__)
 
 
 def check_secret_safety() -> None:
-    """Log a warning if SESSION_SECRET is using the default development value."""
+    """Warn or raise if SESSION_SECRET is using the default development value.
+
+    In production (FASTAPI_APP_ENVIRONMENT=production), raises RuntimeError to
+    prevent startup with an insecure secret. In other environments, logs a warning.
+    """
     if _SECRET == _DEFAULT_SECRET:
+        env = os.getenv("FASTAPI_APP_ENVIRONMENT", "development")
+        if env == "production":
+            raise RuntimeError(
+                "SESSION_SECRET is using the default development value. "
+                "Set SESSION_SECRET to a secure random value before running in production."
+            )
         _logger.warning(
             "SESSION_SECRET is using the default development value. "
             "Change this in production."

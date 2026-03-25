@@ -1,4 +1,5 @@
 """Auth router: login, logout, me, password change."""
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -11,12 +12,22 @@ from core.auth.password import hash_password, validate_password_strength, verify
 from core.users.models import User
 from extensions.registry import registry
 from extensions.protocols import AuthProvider
+from shared.limiter import limiter
 from shared.webpage import webpage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _COOKIE_NAME = "access_token"
 _COOKIE_MAX_AGE = 60 * 60 * 24  # 24h
+
+
+def _is_production() -> bool:
+    """Return True only when FASTAPI_APP_ENVIRONMENT is explicitly 'production'.
+
+    Read at call time (not module load time) so tests can monkeypatch os.environ.
+    Defaults to False to avoid breaking HTTP localhost development.
+    """
+    return os.getenv("FASTAPI_APP_ENVIRONMENT", "development") == "production"
 
 
 class LoginRequest(BaseModel):
@@ -34,7 +45,8 @@ class UpdateProfileRequest(BaseModel):
 
 
 @router.post("/login")
-async def login(body: LoginRequest, response: Response):
+@limiter.limit("10/minute")
+async def login(request: Request, body: LoginRequest, response: Response):
     provider: AuthProvider = registry.get(AuthProvider, "local")
     try:
         user = await provider.authenticate(
@@ -53,6 +65,7 @@ async def login(body: LoginRequest, response: Response):
         httponly=True,
         samesite="lax",
         max_age=_COOKIE_MAX_AGE,
+        secure=_is_production(),
     )
     return {"message": "Logged in", "permissions": user.permissions}
 
@@ -88,7 +101,9 @@ async def update_profile(
 
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 async def change_password(
+    request: Request,
     body: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     response: Response = None,

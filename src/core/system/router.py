@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from core.auth.guards import require_permission
 from core.auth.password import hash_password
+from shared.limiter import limiter
 from core.auth.permissions import READ_SYSTEM, WRITE_SYSTEM
 from core.system.models import SystemConfig
 from core.users.models import User
@@ -70,6 +71,7 @@ async def get_setup(request: Request, error: str | None = None):
 
 
 @router.post("/setup")
+@limiter.limit("3/minute")
 @webpage.redirect(status_code=302)
 async def post_setup(
     request: Request,

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Literal, Optional
 
@@ -114,6 +115,10 @@ class SessionMiddleware:
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
+                # Read env var at call time (not module load time) for correct test isolation
+                is_production = os.environ.get("FASTAPI_APP_ENVIRONMENT", "development") == "production"
+                security_flags = self.security_flags + ("; secure" if is_production else "")
+
                 if scope.get("session"):
                     # 1. 轉換為 dict
                     if hasattr(scope["session"], "model_dump"):
@@ -140,7 +145,7 @@ class SessionMiddleware:
                         data=data,
                         path=self._path,
                         max_age=f"Max-Age={self._max_age}; " if self._max_age else "",
-                        security_flags=self.security_flags,
+                        security_flags=security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
 
@@ -152,7 +157,7 @@ class SessionMiddleware:
                         data="null",
                         path=self._path,
                         expires="expires=Thu, 01 Jan 1970 00:00:00 GMT; ",
-                        security_flags=self.security_flags,
+                        security_flags=security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
 
