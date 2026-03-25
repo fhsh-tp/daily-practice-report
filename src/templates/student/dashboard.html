@@ -149,6 +149,36 @@
 {% endif %}
 {% endif %}
 
+{# ── Join Class button + modal (students only) ──────────────────────────── #}
+{% if is_student %}
+<div class="flex flex-wrap gap-2 mb-6">
+  <button onclick="document.getElementById('join-class-modal').classList.remove('hidden')"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors duration-150 cursor-pointer">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+    </svg>
+    加入班級
+  </button>
+</div>
+
+<div id="join-class-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+    <h3 class="font-heading font-semibold text-gray-900 dark:text-gray-100 mb-4">加入班級</h3>
+    <div class="space-y-3">
+      <input type="text" id="join-invite-code" placeholder="請輸入邀請碼" autofocus
+             class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 outline-none tracking-widest text-center font-mono uppercase">
+    </div>
+    <p id="join-class-msg" class="hidden text-sm mt-2"></p>
+    <div class="flex gap-3 justify-end mt-4">
+      <button onclick="closeJoinModal()"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">取消</button>
+      <button onclick="submitJoinRequest()"
+              class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg cursor-pointer">送出申請</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ── Badge strip — gamified scrollable bar ───────────────────────────────── #}
 {% if badges and badges | length > 0 %}
 <div class="mb-6">
@@ -440,5 +470,49 @@
   });
   {% endif %}
   {% endif %}
+
+  /* ── Join class via invite code ────────────────────────────────────── */
+  function closeJoinModal() {
+    document.getElementById('join-class-modal').classList.add('hidden');
+    const msgEl = document.getElementById('join-class-msg');
+    msgEl.classList.add('hidden');
+    msgEl.className = 'hidden text-sm mt-2';
+    document.getElementById('join-invite-code').value = '';
+  }
+
+  async function submitJoinRequest() {
+    const code = document.getElementById('join-invite-code').value.trim();
+    if (!code) { document.getElementById('join-invite-code').focus(); return; }
+    const msgEl = document.getElementById('join-class-msg');
+    try {
+      const resp = await fetch('/classes/join-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invite_code: code }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        msgEl.textContent = '申請已送出，等待教師審核';
+        msgEl.className = 'text-sm mt-2 text-green-600 dark:text-green-400';
+        msgEl.classList.remove('hidden');
+        setTimeout(closeJoinModal, 2000);
+      } else {
+        msgEl.textContent = data.detail || '送出失敗，請稍後再試';
+        msgEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
+        msgEl.classList.remove('hidden');
+      }
+    } catch {
+      msgEl.textContent = '網路錯誤，請稍後再試';
+      msgEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
+      msgEl.classList.remove('hidden');
+    }
+  }
+
+  (function() {
+    const jm = document.getElementById('join-class-modal');
+    if (jm) {
+      jm.addEventListener('click', function(e) { if (e.target === this) closeJoinModal(); });
+    }
+  })();
 </script>
 {% endblock %}

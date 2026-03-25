@@ -124,12 +124,22 @@ async def create_schedule_rule(
             tmpl = await TaskTemplate.get(body.template_id)
             if tmpl:
                 date_str = str(body.date or body.start_date or "")
+                # Build class template dict for Discord embed
+                class_tmpl = None
+                if cls.discord_template:
+                    class_tmpl = {
+                        "title_format": cls.discord_template.title_format,
+                        "description_template": cls.discord_template.description_template,
+                        "footer_text": cls.discord_template.footer_text,
+                    }
                 try:
                     await discord_send_task_embed(
                         webhook_url=cls.discord_webhook_url,
                         task_name=tmpl.name,
                         description=tmpl.description,
                         date=date_str or None,
+                        class_template=class_tmpl,
+                        class_name=cls.name,
                     )
                 except Exception:
                     logger.error("Discord send failed for class %s", class_id)

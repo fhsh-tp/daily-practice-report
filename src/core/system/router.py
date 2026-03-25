@@ -24,6 +24,7 @@ router = APIRouter(tags=["setup"])
 class SystemConfigUpdate(BaseModel):
     site_name: str
     admin_email: str
+    join_request_reject_cooldown_hours: int | None = None
 
 
 @router.get("/admin/system")
@@ -50,10 +51,21 @@ async def update_system_config(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="System not configured")
     config.site_name = body.site_name
     config.admin_email = body.admin_email
+    if body.join_request_reject_cooldown_hours is not None:
+        if body.join_request_reject_cooldown_hours < 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="join_request_reject_cooldown_hours must be non-negative",
+            )
+        config.join_request_reject_cooldown_hours = body.join_request_reject_cooldown_hours
     await config.save()
     request.app.state.system_config = config
     webpage.webpage_context_update({"site_name": body.site_name})
-    return {"site_name": config.site_name, "admin_email": config.admin_email}
+    return {
+        "site_name": config.site_name,
+        "admin_email": config.admin_email,
+        "join_request_reject_cooldown_hours": config.join_request_reject_cooldown_hours,
+    }
 
 
 # ── Setup wizard ─────────────────────────────────────────────────────────────

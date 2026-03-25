@@ -1,7 +1,8 @@
 """Class management service functions."""
 import secrets
+from datetime import datetime, timedelta, timezone
 
-from core.classes.models import Class, ClassMembership
+from core.classes.models import Class, ClassMembership, JoinRequest
 from core.auth.permissions import MANAGE_ALL_CLASSES, MANAGE_OWN_CLASS
 from core.users.models import IdentityTag, User
 
@@ -223,3 +224,113 @@ async def batch_invite_students(class_id: str, user_ids: list[str]) -> int:
         await membership.insert()
         added += 1
     return added
+
+
+async def create_join_request(
+    user: User,
+    invite_code: str,
+    cooldown_hours: int = 24,
+) -> JoinRequest:
+    """
+    Create a pending JoinRequest for a class via invite code.
+
+    Validates: invite code, not already a member, no duplicate pending,
+    identity_tag is student, and rejection cooldown has elapsed.
+    """
+    if IdentityTag.STUDENT not in user.identity_tags:
+        raise ValueError("Only students can submit join requests")
+
+    cls = await Class.find_one(Class.invite_code == invite_code)
+    if cls is None:
+        raise ValueError("Invalid invite code")
+
+    class_id = str(cls.id)
+    user_id = str(user.id)
+
+    # Already a member?
+    existing_member = await ClassMembership.find_one(
+        ClassMembership.class_id == class_id,
+        ClassMembership.user_id == user_id,
+    )
+    if existing_member:
+        raise ValueError("Already a member of this class")
+
+    # Duplicate pending?
+    existing_pending = await JoinRequest.find_one(
+        JoinRequest.class_id == class_id,
+        JoinRequest.user_id == user_id,
+        JoinRequest.status == "pending",
+    )
+    if existing_pending:
+        raise ValueError("A pending request already exists for this class")
+
+    # Rejection cooldown check
+    if cooldown_hours > 0:
+        latest_rejected = await JoinRequest.find(
+            JoinRequest.class_id == class_id,
+            JoinRequest.user_id == user_id,
+            JoinRequest.status == "rejected",
+        ).sort("-reviewed_at").first_or_none()
+        if latest_rejected and latest_rejected.reviewed_at:
+            reviewed_at = latest_rejected.reviewed_at
+            if reviewed_at.tzinfo is None:
+                reviewed_at = reviewed_at.replace(tzinfo=timezone.utc)
+            cooldown_end = reviewed_at + timedelta(hours=cooldown_hours)
+            if datetime.now(timezone.utc) < cooldown_end:
+                raise ValueError("Must wait before reapplying after rejection")
+
+    join_request = JoinRequest(
+        class_id=class_id,
+        user_id=user_id,
+        invite_code_used=invite_code,
+    )
+    await join_request.insert()
+    return join_request
+
+
+async def get_pending_join_requests(class_id: str) -> list[JoinRequest]:
+    """Return all pending JoinRequests for a class."""
+    return await JoinRequest.find(
+        JoinRequest.class_id == class_id,
+        JoinRequest.status == "pending",
+    ).to_list()
+
+
+async def review_join_request(
+    request_id: str,
+    action: str,
+    reviewer: User,
+) -> JoinRequest:
+    """
+    Approve or reject a pending JoinRequest.
+
+    On approve: creates ClassMembership and updates status.
+    On reject: updates status and reviewed_at.
+    """
+    jr = await JoinRequest.get(request_id)
+    if jr is None:
+        raise ValueError("Join request not found")
+
+    if jr.status != "pending":
+        raise ValueError("Only pending requests can be reviewed")
+
+    now = datetime.now(timezone.utc)
+    jr.reviewed_at = now
+    jr.reviewed_by = str(reviewer.id)
+
+    if action in ("approve", "approved"):
+        jr.status = "approved"
+        await jr.save()
+        membership = ClassMembership(
+            class_id=jr.class_id,
+            user_id=jr.user_id,
+            role="student",
+        )
+        await membership.insert()
+    elif action in ("reject", "rejected"):
+        jr.status = "rejected"
+        await jr.save()
+    else:
+        raise ValueError(f"Invalid action: {action!r}. Must be 'approve' or 'reject'")
+
+    return jr

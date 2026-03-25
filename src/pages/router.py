@@ -648,6 +648,7 @@ async def admin_system_settings_submit(
     request: Request,
     site_name: str = Form(...),
     admin_email: str = Form(default=""),
+    join_request_reject_cooldown_hours: int = Form(default=24),
     current_user: User = Depends(_require_write_system),
 ):
     from core.system.models import SystemConfig
@@ -655,6 +656,8 @@ async def admin_system_settings_submit(
     if config:
         config.site_name = site_name
         config.admin_email = admin_email
+        if join_request_reject_cooldown_hours >= 0:
+            config.join_request_reject_cooldown_hours = join_request_reject_cooldown_hours
         await config.save()
         request.app.state.system_config = config
         webpage.webpage_context_update({"site_name": site_name})
